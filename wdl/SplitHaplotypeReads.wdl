@@ -14,8 +14,8 @@ workflow SplitHaplotypeReads{
     }
 
 
-    Call ExtractHaplotypeSeq{
-        input:
+    Call ExtractHaplotypeSeq {
+        input: 
             input_fa = input_fa,
             sample = sample,
             RuntimeAttr = runtime_attr_split_hap
@@ -36,7 +36,6 @@ task ExtractHaplotypeSeq {
         String sample
         RuntimeAttr? runtime_attr_override
     }
-
 
     String prefix=basename(input_fa, ".fna.gz")
 
@@ -87,6 +86,5 @@ task ExtractHaplotypeSeq {
         docker: docker_image
         preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
         maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
-        }
     }
 }
