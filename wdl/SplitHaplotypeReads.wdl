@@ -14,7 +14,7 @@ workflow SplitHaplotypeReads{
     }
 
 
-    Call ExtractHaplotypeSeq {
+    call ExtractHaplotypeSeq {
         input: 
             input_fa = input_fa,
             sample = sample,
