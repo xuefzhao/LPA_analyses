@@ -45,21 +45,21 @@ task ExtractHaplotypeSeq {
         # Get prefix without .fna.gz
 
         # Uncompress and recompress with bgzip
-        gunzip -c "~{input_fa}" > "${prefix}.fna"
-        bgzip -f "${prefix}.fna"
+        gunzip -c "~{input_fa}" > "~{prefix}.fna"
+        bgzip -f "~{prefix}.fna"
 
         # Index fasta
-        samtools faidx "${prefix}.fna.gz"
+        samtools faidx "~{prefix}.fna.gz"
 
         # Extract sequence IDs
-        zcat "${prefix}.fna.gz" | grep '^>' | grep 'h1tg' > seq_ID.h1.tsv
-        zcat "${prefix}.fna.gz" | grep '^>' | grep 'h2tg' > seq_ID.h2.tsv
+        zcat "~{prefix}.fna.gz" | grep '^>' | grep 'h1tg' > seq_ID.h1.tsv
+        zcat "~{prefix}.fna.gz" | grep '^>' | grep 'h2tg' > seq_ID.h2.tsv
 
         # Extract sequences for hap1
-        samtools faidx "${prefix}.fna.gz" $(awk '{print $1}' seq_ID.h1.tsv | sed -e 's/>//') > "~{sample}.h1.hifiasm.fa"
+        samtools faidx "~{prefix}.fna.gz" $(awk '{print $1}' seq_ID.h1.tsv | sed -e 's/>//') > "~{sample}.h1.hifiasm.fa"
 
         # Extract sequences for hap2
-        samtools faidx "${prefix}.fna.gz" $(awk '{print $1}' seq_ID.h2.tsv | sed -e 's/>//') > "~{sample}.h2.hifiasm.fa"
+        samtools faidx "~{prefix}.fna.gz" $(awk '{print $1}' seq_ID.h2.tsv | sed -e 's/>//') > "~{sample}.h2.hifiasm.fa"
     >>>
 
     output {
