@@ -18,7 +18,7 @@ workflow SplitHaplotypeReads{
         input: 
             input_fa = input_fa,
             sample = sample,
-            RuntimeAttr = runtime_attr_split_hap
+            runtime_attr_override = runtime_attr_split_hap
     } 
 
     output{
