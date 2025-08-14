@@ -62,10 +62,8 @@ workflow AlignAsm {
 
     output {
         File sample_h1_bam = compressAndIndexH1.bamOut
-        File sample_h1_paf = compressAndIndexH1.pafOut
         File sample_h1_idx = compressAndIndexH1.indexOut
         File sample_h2_bam = compressAndIndexH2.bamOut
-        File sample_h2_paf = compressAndIndexH2.pafOut
         File sample_h2_idx = compressAndIndexH2.indexOut
     }
 }
