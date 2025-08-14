@@ -4,19 +4,21 @@ import "Structs.wdl"
 
 workflow AlignAsm {
     input {
-      String input_sample_name
-      
-      File input_asm_h1
-      File input_asm_h2
-      File ref
-      
-      String minimap_docker
-      String sv_pipeline_base_docker
+        String input_sample_name
 
-      RuntimeAttr? runtime_attr_align_h1
-      RuntimeAttr? runtime_attr_align_h2
-      RuntimeAttr? runtime_attr_compress_index_h1
-      RuntimeAttr? runtime_attr_compress_index_h2
+        File input_asm_h1
+        File input_asm_h2
+        File ref
+
+        String minimap_docker
+        String sv_pipeline_base_docker
+
+        File? monitoring_script
+
+        RuntimeAttr? runtime_attr_align_h1
+        RuntimeAttr? runtime_attr_align_h2
+        RuntimeAttr? runtime_attr_compress_index_h1
+        RuntimeAttr? runtime_attr_compress_index_h2
     }
     meta {
         workflow_description: "Creates callerset for a single sample"
@@ -30,6 +32,7 @@ workflow AlignAsm {
             ref = ref,
             threads = 4,
             docker_file = minimap_docker,
+            monitoring_script = monitoring_script,
             runtime_attr_override = runtime_attr_align_h1
     }
     call compressAndIndex as compressAndIndexH1 {
@@ -38,6 +41,7 @@ workflow AlignAsm {
             sample = input_sample_name,
             hap = "h1",
             docker_file = sv_pipeline_base_docker,
+            monitoring_script = monitoring_script,
             runtime_attr_override = runtime_attr_compress_index_h1
     }
 
@@ -49,6 +53,7 @@ workflow AlignAsm {
             ref = ref,
             threads = 4,
             docker_file = minimap_docker,
+            monitoring_script = monitoring_script,
             runtime_attr_override = runtime_attr_align_h2
     }
     call compressAndIndex as compressAndIndexH2 {
@@ -57,6 +62,7 @@ workflow AlignAsm {
             sample = input_sample_name,
             hap = "h2",
             docker_file = sv_pipeline_base_docker,
+            monitoring_script = monitoring_script,
             runtime_attr_override = runtime_attr_compress_index_h2
    }
 
@@ -76,11 +82,21 @@ task alignToRef {
         File ref
         String hap
         Int threads
+        File? monitoring_script
         String docker_file
         RuntimeAttr? runtime_attr_override
     }
 
     command <<<
+
+        set -euxo pipefail
+
+        # Create a zero-size monitoring log file so it exists even if we don't pass a monitoring script
+        touch monitoring.log
+        if [ -s ~{monitoring_script} ]; then
+            bash ~{monitoring_script} > monitoring.log &
+        fi
+
         minimap2 -x asm20 -m 10000 -z 10000,50 -r 50000 --end-bonus=100 -O 5,56 -E 4,1 -B 5 --secondary=no -a -t ~{threads} --eqx -Y ~{ref} ~{asmIn} > ~{sample + "-asm_" + hap + ".minimap2.sam"}
     >>>
 
@@ -117,10 +133,19 @@ task compressAndIndex {
         String sample
         String hap
         String docker_file
+        File? monitoring_script
         RuntimeAttr? runtime_attr_override
     }
 
     command <<<
+        set -euxo pipefail
+
+        # Create a zero-size monitoring log file so it exists even if we don't pass a monitoring script
+        touch monitoring.log
+        if [ -s ~{monitoring_script} ]; then
+            bash ~{monitoring_script} > monitoring.log &
+        fi
+
         samtools view -b ~{samIn} | samtools sort -O bam -o ~{sample + "-asm_" + hap + ".minimap2.bam"} -
         samtools index ~{sample + "-asm_" + hap + ".minimap2.bam"}
 
