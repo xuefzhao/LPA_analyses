@@ -18,6 +18,7 @@ workflow SplitHaplotypeReads{
         input: 
             input_fa = input_fa,
             sample = sample,
+            docker_file = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_split_hap
     } 
 
@@ -34,6 +35,7 @@ task ExtractHaplotypeSeq {
     input {
         File input_fa
         String sample
+        String docker_file
         RuntimeAttr? runtime_attr_override
     }
 
@@ -83,7 +85,7 @@ task ExtractHaplotypeSeq {
         memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
         disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
         bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
-        docker: "biocontainers/samtools:v1.17-1-deb_cv1"
+        docker: docker_file
         preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
         maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
     }
