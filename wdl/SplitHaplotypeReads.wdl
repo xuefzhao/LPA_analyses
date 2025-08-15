@@ -11,6 +11,8 @@ workflow SplitHaplotypeReads{
         String sv_pipeline_base_docker
 
         RuntimeAttr? runtime_attr_split_hap
+        RuntimeAttr? runtime_attr_bgzip_hap1_fa
+        RuntimeAttr? runtime_attr_bgzip_hap2_fa
     }
 
 
@@ -33,7 +35,7 @@ workflow SplitHaplotypeReads{
         input:
             input_fa = ExtractHaplotypeSeq.hap2_fa,
             docker_file = sv_base_mini_docker,
-            runtime_attr_override = runtime_attr_bgzip_hap1_fa
+            runtime_attr_override = runtime_attr_bgzip_hap2_fa
     }
 
     output{
