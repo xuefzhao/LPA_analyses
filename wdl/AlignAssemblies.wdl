@@ -10,71 +10,166 @@ workflow AlignAsm {
         File input_asm_h2
         File ref
 
+        Int reads_per_file = 10
+
         String minimap_docker
         String sv_pipeline_base_docker
 
         File? monitoring_script
 
-        RuntimeAttr? runtime_attr_align_h1
-        RuntimeAttr? runtime_attr_align_h2
-        RuntimeAttr? runtime_attr_compress_index_h1
-        RuntimeAttr? runtime_attr_compress_index_h2
+        RuntimeAttr? runtime_attr_split_fasta
+        RuntimeAttr? runtime_attr_align
+        RuntimeAttr? runtime_attr_compress_index
     }
     meta {
         workflow_description: "Creates callerset for a single sample"
     }
 
-    call alignToRef as alignToRefH1 {
+    call SplitFasta as split_fasta_h1{
         input:
-            asmIn = input_asm_h1,
-            sample = input_sample_name,
-            hap = "h1",
-            ref = ref,
-            threads = 4,
-            docker_file = minimap_docker,
-            monitoring_script = monitoring_script,
-            runtime_attr_override = runtime_attr_align_h1
-    }
-    call compressAndIndex as compressAndIndexH1 {
-        input:
-            samIn = alignToRefH1.samOut,
-            sample = input_sample_name,
-            hap = "h1",
+            fasta_file = input_asm_h1,
+            reads_per_file = reads_per_file,
             docker_file = sv_pipeline_base_docker,
-            monitoring_script = monitoring_script,
-            runtime_attr_override = runtime_attr_compress_index_h1
+            runtime_attr_override = runtime_attr_split_fasta
     }
 
-    call alignToRef as alignToRefH2 {
+    call SplitFasta as split_fasta_h2{
         input:
-            asmIn = input_asm_h2,
-            sample = input_sample_name,
-            hap = "h2",
-            ref = ref,
-            threads = 4,
-            docker_file = minimap_docker,
-            monitoring_script = monitoring_script,
-            runtime_attr_override = runtime_attr_align_h2
-    }
-    call compressAndIndex as compressAndIndexH2 {
-        input:
-            samIn = alignToRefH2.samOut,
-            sample = input_sample_name,
-            hap = "h2",
+            fasta_file = input_asm_h2,
+            reads_per_file = reads_per_file,
             docker_file = sv_pipeline_base_docker,
-            monitoring_script = monitoring_script,
-            runtime_attr_override = runtime_attr_compress_index_h2
-   }
+            runtime_attr_override = runtime_attr_split_fasta
+    }
+
+    scatter (fa_h1 in split_fasta_h1.output_fastas){
+        call alignToRef as alignToRefH1 {
+            input:
+                asmIn = fa_h1,
+                sample = input_sample_name,
+                hap = "h1",
+                ref = ref,
+                threads = 4,
+                docker_file = minimap_docker,
+                monitoring_script = monitoring_script,
+                runtime_attr_override = runtime_attr_align
+        }
+
+        call compressAndIndex as compressAndIndexH1 {
+            input:
+                samIn = alignToRefH1.samOut,
+                sample = input_sample_name,
+                hap = "h1",
+                docker_file = sv_pipeline_base_docker,
+                monitoring_script = monitoring_script,
+                runtime_attr_override = runtime_attr_compress_index
+        }
+    }
+
+    scatter (fa_h2 in split_fasta_h2.output_fastas){
+        call alignToRef as alignToRefH2 {
+            input:
+                asmIn = fa_h2,
+                sample = input_sample_name,
+                hap = "h2",
+                ref = ref,
+                threads = 4,
+                docker_file = minimap_docker,
+                monitoring_script = monitoring_script,
+                runtime_attr_override = runtime_attr_align
+        }
+
+        call compressAndIndex as compressAndIndexH2 {
+            input:
+                samIn = alignToRefH2.samOut,
+                sample = input_sample_name,
+                hap = "h2",
+                docker_file = sv_pipeline_base_docker,
+                monitoring_script = monitoring_script,
+                runtime_attr_override = runtime_attr_compress_index
+        }
+    }
+
+    call MergeBams as merge_bam_h1{
+        input:
+            bam_files = compressAndIndexH1.bamOut,
+            bai_files = compressAndIndexH1.baiOut
+            prefix = "~{sample}_h1",
+            docker_file = sv_pipeline_base_docker,
+            runtime_attr_override = runtime_attr_merge_bam
+    }
+
+    call MergeBams as merge_bam_h2{
+        input:
+            bam_files = compressAndIndexH2.bamOut,
+            bai_files = compressAndIndexH2.baiOut
+            prefix = "~{sample}_h2",
+            docker_file = sv_pipeline_base_docker,
+            runtime_attr_override = runtime_attr_merge_bam
+    }
+
 
     output {
-        File sample_h1_bam = compressAndIndexH1.bamOut
-        File sample_h1_idx = compressAndIndexH1.indexOut
-        File sample_h2_bam = compressAndIndexH2.bamOut
-        File sample_h2_idx = compressAndIndexH2.indexOut
+        File sample_h1_bam = merge_bam_h1.merged_bam
+        File sample_h1_bai = merge_bam_h1.merged_bai
+        File sample_h2_bam = merge_bam_h2.merged_bam
+        File sample_h2_bai = merge_bam_h1.merged_bai
     }
 }
 
  
+task SplitFasta {
+    input {
+        File fasta_file
+        Int reads_per_file
+        String docker_file
+        RuntimeAttr? runtime_attr_override
+    }
+
+    command <<<
+        set -euxo pipefail
+
+        mkdir split_output
+
+        awk -v n=${reads_per_file} '
+            BEGIN { file_index=0; count=0 }
+            /^>/ {
+                if (count % n == 0) {
+                    file_index++;
+                    file = sprintf("split_output/chunk_%04d.fasta", file_index);
+                }
+                count++;
+            }
+            { print >> file }
+        ' ~{fasta_file}
+
+    >>>
+
+    output {
+        Array[File] output_fastas = glob("split_output/*.fasta")
+    }
+
+    RuntimeAttr default_attr = object {
+        cpu_cores: 1,
+        mem_gb: 20 + ceil(size(fasta_file, "GiB")*3),
+        disk_gb: 40 + ceil(size(fasta_file, "GiB")*3),
+        boot_disk_gb: 10,
+        preemptible_tries: 1,
+        max_retries: 1
+    }
+
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+
+    runtime {
+        cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
+        memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
+        docker: docker_file
+        preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+    }
+}
+
 task alignToRef {
     input {
         File asmIn
@@ -154,7 +249,7 @@ task compressAndIndex {
 
     output {
         File bamOut = "~{sample}-asm_~{hap}.minimap2.bam"
-        File indexOut = "~{sample}-asm_~{hap}.minimap2.bam.bai"
+        File baiOut = "~{sample}-asm_~{hap}.minimap2.bam.bai"
     }
 
 
@@ -180,3 +275,45 @@ task compressAndIndex {
     }
 }
 
+task MergeBams {
+    input {
+        Array[File] bam_files
+        Array[File] bai_files
+        String prefix
+        String docker_file
+        RuntimeAttr? runtime_attr_override
+    }
+
+    command <<<
+        samtools merge -@ 4 merged.bam ~{sep=' ' bam_files}
+        samtools sort -o merged.sorted.bam merged.bam
+        mv merged.sorted.bam "~{prefix}.bam"
+        samtools index "~{prefix}.bam"
+    >>>
+
+    output {
+        File merged_bam = "~{prefix}.bam"
+        File merged_bai = "~{prefix}.bam.bai"
+    }
+
+    RuntimeAttr default_attr = object {
+        cpu_cores: 1,
+        mem_gb: 20 + ceil(sum(size(bam_files, "GiB"))*5),
+        disk_gb: 40 + ceil(sum(size(bam_files, "GiB"))*5),
+        boot_disk_gb: 10,
+        preemptible_tries: 1,
+        max_retries: 1
+    }
+
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+
+    runtime {
+        cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
+        memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
+        docker: docker_file
+        preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+    }
+}
