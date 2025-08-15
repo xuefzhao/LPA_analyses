@@ -24,23 +24,10 @@ workflow SplitHaplotypeReads{
             runtime_attr_override = runtime_attr_split_hap
     } 
 
-    call BgzipFa as bgzip_hap1_fa{
-        input:
-            input_fa = ExtractHaplotypeSeq.hap1_fa,
-            docker_file = sv_base_mini_docker,
-            runtime_attr_override = runtime_attr_bgzip_hap1_fa
-    }
-
-    call BgzipFa as bgzip_hap2_fa{
-        input:
-            input_fa = ExtractHaplotypeSeq.hap2_fa,
-            docker_file = sv_base_mini_docker,
-            runtime_attr_override = runtime_attr_bgzip_hap2_fa
-    }
 
     output{
-        File hap1_fasta = bgzip_hap1_fa.bgzip_fa
-        File hap2_fasta = bgzip_hap2_fa.bgzip_fa
+        File hap1_fasta = ExtractHaplotypeSeq.hap1_fa
+        File hap2_fasta = ExtractHaplotypeSeq.hap2_fa
     }
 }
 
@@ -78,11 +65,14 @@ task ExtractHaplotypeSeq {
 
         # Extract sequences for hap2
         samtools faidx "~{prefix}.fna.gz" $(awk '{print $1}' seq_ID.h2.tsv | sed -e 's/>//') > "~{sample}.h2.hifiasm.fa"
+
+        bgzip  "~{sample}.h1.hifiasm.fa"
+        bgzip  "~{sample}.h2.hifiasm.fa"
     >>>
 
     output {
-        File hap1_fa = "~{sample}.h1.hifiasm.fa"
-        File hap2_fa = "~{sample}.h2.hifiasm.fa"
+        File hap1_fa = "~{sample}.h1.hifiasm.fa.gz"
+        File hap2_fa = "~{sample}.h2.hifiasm.fa.gz"
     }
 
     RuntimeAttr default_attr = object {
