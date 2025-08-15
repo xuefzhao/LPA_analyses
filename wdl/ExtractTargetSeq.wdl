@@ -131,8 +131,7 @@ task ExtractSeq {
             with open(output_file, "w") as f:
                 f.write(f"{header}\n")
                 # Write sequence in 60 bp lines (FASTA standard)
-                for i in range(0, len(stitched_sequence), 60):
-                    f.write(stitched_sequence[i:i+60] + "\n")
+                f.write(stitched_sequence)
 
         start = int("~{start}")
         end = int("~{end}")
