@@ -22,9 +22,23 @@ workflow SplitHaplotypeReads{
             runtime_attr_override = runtime_attr_split_hap
     } 
 
+    call BgzipFa as bgzip_hap1_fa{
+        input:
+            input_fa = ExtractHaplotypeSeq.hap1_fa,
+            docker_file = sv_base_mini_docker,
+            runtime_attr_override = runtime_attr_bgzip_hap1_fa
+    }
+
+    call BgzipFa as bgzip_hap2_fa{
+        input:
+            input_fa = ExtractHaplotypeSeq.hap2_fa,
+            docker_file = sv_base_mini_docker,
+            runtime_attr_override = runtime_attr_bgzip_hap1_fa
+    }
+
     output{
-        File hap1_fasta = ExtractHaplotypeSeq.hap1_fa
-        File hap2_fasta = ExtractHaplotypeSeq.hap2_fa
+        File hap1_fasta = bgzip_hap1_fa.bgzip_fa
+        File hap2_fasta = bgzip_hap2_fa.bgzip_fa
     }
 }
 
@@ -73,6 +87,45 @@ task ExtractHaplotypeSeq {
         cpu_cores: 1,
         mem_gb: 10 + ceil(size(input_fa, "GiB")*4),
         disk_gb: 15 + ceil(size(input_fa, "GiB")*4),
+        boot_disk_gb: 10,
+        preemptible_tries: 1,
+        max_retries: 1
+    }
+
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+
+    runtime {
+        cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
+        memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
+        docker: docker_file
+        preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+    }
+}
+
+task BgzipFa {
+    input {
+        File input_fa
+        String docker_file
+        RuntimeAttr? runtime_attr_override
+    }
+
+    command <<<
+        set -euo pipefail
+
+        bgzip "~{input_fa}"
+    >>>
+
+    output {
+        File bgzip_fa = "~{input_fa}.gz"
+    }
+
+    RuntimeAttr default_attr = object {
+        cpu_cores: 1,
+        mem_gb: 10 + ceil(size(input_fa, "GiB")*2),
+        disk_gb: 15 + ceil(size(input_fa, "GiB")*2),
         boot_disk_gb: 10,
         preemptible_tries: 1,
         max_retries: 1
