@@ -138,7 +138,7 @@ task ExtractSeq {
 
         stitched_sequence = stitch_reads_to_region("~{bam}", "~{chrom}", start, end)
 
-        write_stitched_sequence_to_fasta(stitched_sequence, "~{prefix}", "~{chrom}", start, end, "~{prefix}.seq" )
+        write_stitched_sequence_to_fasta(stitched_sequence, "~{prefix}", "~{chrom}", start, end, "~{prefix}.fa" )
 
 
         CODE
@@ -147,7 +147,7 @@ task ExtractSeq {
 
 
     output {
-        File seq = "~{prefix}.seq"
+        File seq = "~{prefix}.fa"
     }
 
     RuntimeAttr default_attr = object {
