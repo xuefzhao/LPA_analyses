@@ -114,14 +114,17 @@ task BgzipFa {
         RuntimeAttr? runtime_attr_override
     }
 
+    String prefix = basename(input_fa,".fa")
     command <<<
         set -euo pipefail
 
-        bgzip "~{input_fa}"
+        cp "~{input_fa}" ~{prefix}.fa
+        bgzip "~{prefix}.fa}"
+
     >>>
 
     output {
-        File bgzip_fa = "~{input_fa}.gz"
+        File bgzip_fa = "~{prefix}.fa.gz"
     }
 
     RuntimeAttr default_attr = object {
