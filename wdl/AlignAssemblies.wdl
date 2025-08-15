@@ -20,6 +20,7 @@ workflow AlignAsm {
         RuntimeAttr? runtime_attr_split_fasta
         RuntimeAttr? runtime_attr_align
         RuntimeAttr? runtime_attr_compress_index
+        RuntimeAttr? runtime_attr_merge_bam
     }
     meta {
         workflow_description: "Creates callerset for a single sample"
