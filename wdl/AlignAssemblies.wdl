@@ -94,7 +94,7 @@ workflow AlignAsm {
         input:
             bam_files = compressAndIndexH1.bamOut,
             bai_files = compressAndIndexH1.baiOut,
-            prefix = "~{sample}_h1",
+            prefix = "~{input_sample_name}_h1",
             docker_file = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_merge_bam
     }
@@ -103,7 +103,7 @@ workflow AlignAsm {
         input:
             bam_files = compressAndIndexH2.bamOut,
             bai_files = compressAndIndexH2.baiOut,
-            prefix = "~{sample}_h2",
+            prefix = "~{input_sample_name}_h2",
             docker_file = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_merge_bam
     }
