@@ -10,7 +10,7 @@ workflow AlignAsm {
         File input_asm_h2
         File ref
 
-        Int reads_per_file = 10
+        Int reads_per_file = 50
 
         String minimap_docker
         String sv_pipeline_base_docker
@@ -207,8 +207,8 @@ task alignToRef {
 
     RuntimeAttr default_attr = object {
         cpu_cores: 1,
-        mem_gb: 40 + ceil(size(asmIn, "GiB")*50),
-        disk_gb: 60 + ceil(size(asmIn, "GiB")*50),
+        mem_gb: 100 + ceil(size(asmIn, "GiB")*50),
+        disk_gb: 200 + ceil(size(asmIn, "GiB")*50),
         boot_disk_gb: 10,
         preemptible_tries: 1,
         max_retries: 1
