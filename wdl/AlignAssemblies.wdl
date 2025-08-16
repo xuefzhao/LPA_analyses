@@ -126,22 +126,26 @@ task SplitFasta {
         RuntimeAttr? runtime_attr_override
     }
 
+    String prefix = basename(fasta_file)
+
     command <<<
         set -euxo pipefail
 
-        mkdir split_output
+        # Index fasta
+        samtools faidx ~{fasta_file}
 
-        awk -v n=${reads_per_file} '
-            BEGIN { file_index=0; count=0 }
-            /^>/ {
-                if (count % n == 0) {
-                    file_index++;
-                    file = sprintf("split_output/chunk_%04d.fasta", file_index);
-                }
-                count++;
-            }
-            { print >> file }
-        ' ~{fasta_file}
+        # Split fai into groups of N reads
+        mkdir split_output
+        split -l ~{reads_per_file} ~{fasta_file}.fai split_output/fai_chunk_
+
+        # Extract reads for each chunk
+        for f in split_output/fai_chunk_*; do
+            chunk_name=$(basename $f)
+            out="split_output/${chunk_name}.fasta"
+            cut -f1 $f | xargs samtools faidx ~{fasta_file} > $out
+        done
+
+
 
     >>>
 
