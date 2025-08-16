@@ -291,8 +291,7 @@ task MergeBams {
 
     command <<<
         samtools merge -@ 4 merged.bam ~{sep=' ' bam_files}
-        samtools sort -o merged.sorted.bam merged.bam
-        mv merged.sorted.bam "~{prefix}.bam"
+        mv merged.bam "~{prefix}.bam"
         samtools index "~{prefix}.bam"
     >>>
 
