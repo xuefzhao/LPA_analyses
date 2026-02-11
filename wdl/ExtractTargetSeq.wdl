@@ -160,9 +160,11 @@ task ConcatFasta {
 
       echo ">${name}" >> "${out_fa}"
       echo "${seq}" >> "${out_fa}"
-    done  >>>
+    done 
 
     samtools faidx "~{output_prefix}.fa"
+
+    >>>
 
   output {
     File merged_fasta = "~{output_prefix}.fa"
