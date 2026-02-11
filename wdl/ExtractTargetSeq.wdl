@@ -9,6 +9,9 @@ workflow ExtractTargetSeq {
         File input_bam_h2
         File input_bai_h2
 
+        String prefix
+        String midfix
+
         File extract_target_sequence_py
 
         String chrom
@@ -52,11 +55,16 @@ workflow ExtractTargetSeq {
             runtime_attr_override = runtime_attr_align_h1
     }
 
-
+    call ConcatFasta{
+        input:
+            fasta_files = [extract_seq_from_h1.seq, extract_seq_from_h2.seq],
+            output_prefix = "~{prefix}.~{midfix}",
+            docker_image = sv_pipeline_base_docker
+    }
 
     output {
-        File seq_h1 = extract_seq_from_h1.seq
-        File seq_h2 = extract_seq_from_h2.seq
+        File seq = ConcatFasta.merged_fasta
+        File fai = ConcatFasta.fasta_index    
     }
 }
 
@@ -118,3 +126,49 @@ task ExtractSeq {
     }
 }
 
+task ConcatFasta {
+  input {
+    Array[File] fasta_files
+    String output_prefix
+    String docker_image
+    RuntimeAttr? runtime_attr_override
+  }
+
+  RuntimeAttr default_attr = object {
+    cpu_cores: 1,
+    mem_gb: 2,
+    disk_gb: ceil(10 + size(fasta_files, "GB") * 2),
+    boot_disk_gb: 10,
+    preemptible_tries: 0,
+    max_retries: 1
+  }
+
+  RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+
+  String output_fasta = output_prefix + ".fasta"
+
+  command <<<
+    set -euo pipefail
+
+    # Concatenate FASTA files
+    cat ~{sep=' ' fasta_files} > ~{output_fasta}
+
+    # Index FASTA
+    samtools faidx ~{output_fasta}
+  >>>
+
+  output {
+    File merged_fasta = output_fasta
+    File fasta_index  = output_fasta + ".fai"
+  }
+
+  runtime {
+    cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
+    memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
+    disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
+    bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
+    docker: docker_image
+    preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+    maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+  }
+}
