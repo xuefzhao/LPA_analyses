@@ -9,6 +9,8 @@ workflow ExtractTargetSeq {
         File input_bam_h2
         File input_bai_h2
 
+        File extract_target_sequence_py
+
         String chrom
         Int start
         Int end
@@ -27,7 +29,8 @@ workflow ExtractTargetSeq {
     call ExtractSeq as extract_seq_from_h1 {
         input:
             bam = input_bam_h1,
-            bai = input_bai_h1, 
+            bai = input_bai_h1,
+            extract_target_sequence_py = extract_target_sequence_py, 
             chrom = chrom,
             start = start,
             end = end,
@@ -62,6 +65,8 @@ task ExtractSeq {
         File bam
         File bai
 
+        File extract_target_sequence_py
+
         String chrom
         Int start
         Int end
@@ -78,7 +83,7 @@ task ExtractSeq {
 
         set -euxo pipefail
 
-        python extract_target_sequence.py \
+        python ~{extract_target_sequence_py} \
           -b ~{bam} \
           -r ~{chrom}:~{start}-~{end} \
           -o ~{prefix}.fa
