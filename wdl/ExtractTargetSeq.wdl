@@ -145,13 +145,10 @@ task ConcatFasta {
 
   RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
 
-  String output_fasta = output_prefix + ".fasta"
-
   command <<<
     set -euo pipefail
 
     out_fa="~{output_prefix}.fa"
-    > "${out_fa}"
 
     for fa in ~{sep=' ' fasta_list}; do
       name=$(basename "${fa}" .fa)
@@ -161,19 +158,15 @@ task ConcatFasta {
             | tr -d ' \t\r\n' \
             | tr 'acgtn' 'ACGTN')
 
-      # Skip empty sequences
-      if [ -z "${seq}" ]; then
-        echo "WARNING: empty sequence in ${fa}, skipping" >&2
-        continue
-      fi
-
       echo ">${name}" >> "${out_fa}"
-      echo "${seq}" | fold -w 60 >> "${out_fa}"
+      echo "${seq}" >> "${out_fa}"
     done  >>>
 
+    samtools faidx "~{output_prefix}.fa"
+
   output {
-    File merged_fasta = output_fasta
-    File fasta_index  = output_fasta + ".fai"
+    File merged_fasta = "~{output_prefix}.fa"
+    File fasta_index  = "~{output_prefix}.fa.fai"
   }
 
   runtime {
