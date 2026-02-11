@@ -57,7 +57,7 @@ workflow ExtractTargetSeq {
 
     call ConcatFasta{
         input:
-            fasta_files = [extract_seq_from_h1.seq, extract_seq_from_h2.seq],
+            fasta_list = [extract_seq_from_h1.seq, extract_seq_from_h2.seq],
             output_prefix = "~{prefix}.~{midfix}",
             docker_image = sv_pipeline_base_docker
     }
@@ -128,7 +128,7 @@ task ExtractSeq {
 
 task ConcatFasta {
   input {
-    Array[File] fasta_files
+    Array[File] fasta_list
     String output_prefix
     String docker_image
     RuntimeAttr? runtime_attr_override
@@ -137,7 +137,7 @@ task ConcatFasta {
   RuntimeAttr default_attr = object {
     cpu_cores: 1,
     mem_gb: 2,
-    disk_gb: ceil(10 + size(fasta_files, "GB") * 2),
+    disk_gb: ceil(10 + size(fasta_list, "GB") * 2),
     boot_disk_gb: 10,
     preemptible_tries: 0,
     max_retries: 1
@@ -150,12 +150,26 @@ task ConcatFasta {
   command <<<
     set -euo pipefail
 
-    # Concatenate FASTA files
-    cat ~{sep=' ' fasta_files} > ~{output_fasta}
+    out_fa="~{output_prefix}.fa"
+    > "${out_fa}"
 
-    # Index FASTA
-    samtools faidx ~{output_fasta}
-  >>>
+    for fa in ~{sep=' ' fasta_list}; do
+      name=$(basename "${fa}" .fa)
+
+      # Extract sequence, remove headers/whitespace, uppercase
+      seq=$(grep -v '^>' "${fa}" \
+            | tr -d ' \t\r\n' \
+            | tr 'acgtn' 'ACGTN')
+
+      # Skip empty sequences
+      if [ -z "${seq}" ]; then
+        echo "WARNING: empty sequence in ${fa}, skipping" >&2
+        continue
+      fi
+
+      echo ">${name}" >> "${out_fa}"
+      echo "${seq}" | fold -w 60 >> "${out_fa}"
+    done  >>>
 
   output {
     File merged_fasta = output_fasta
