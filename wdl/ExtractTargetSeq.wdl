@@ -79,69 +79,10 @@ task ExtractSeq {
 
         set -euxo pipefail
 
-
-        python3 <<CODE
-
-        import pysam
-
-        def stitch_reads_to_region(bam_file, chromosome, start, end):
-            """
-            Stitch together all reads covering a target region into a single reference-aligned sequence.
-            Gaps not covered by any read are filled with 'N'.
-            Parameters:
-                bam_file (str): Path to BAM file.
-                chromosome (str): Chromosome name (e.g., 'chr1').
-                start (int): 0-based start position of the region.
-                end (int): End position (exclusive).
-            Returns:
-                str: Stitched sequence of length (end-start), with uncovered positions as 'N'.
-            """
-
-            region_length = end - start
-            stitched_seq = ['N'] * region_length  # initialize with N
-            with pysam.AlignmentFile(bam_file, "rb") as bam:
-                for read in bam.fetch(chromosome, start, end):
-                    if read.is_unmapped:
-                        continue
-                    ref_pos = read.reference_start
-                    read_pos = 0
-                    for (cigar_op, length) in read.cigartuples:
-                        if cigar_op in (0, 7, 8):  # M, =, X
-                            for i in range(length):
-                                if start <= ref_pos < end:
-                                    idx = ref_pos - start
-                                    stitched_seq[idx] = read.query_sequence[read_pos]
-                                ref_pos += 1
-                                read_pos += 1
-                        elif cigar_op in (1, 4, 5):  # I, S, H
-                            read_pos += length
-                        elif cigar_op in (2, 3):  # D, N
-                            ref_pos += length
-                        elif cigar_op == 6:  # P
-                            continue
-                        else:
-                            raise ValueError(f"Unknown CIGAR operation: {cigar_op}")
-            return ''.join(stitched_seq)
-
-        def write_stitched_sequence_to_fasta(stitched_sequence, prefix, chromosome, start, end, output_file):
-            """
-            Write stitched sequence to a FASTA file.
-            """
-            header = f">~{prefix}_{chromosome}:{start}-{end}"
-            with open(output_file, "w") as f:
-                f.write(f"{header}\n")
-                # Write sequence in 60 bp lines (FASTA standard)
-                f.write(stitched_sequence)
-
-        start = int("~{start}")
-        end = int("~{end}")
-
-        stitched_sequence = stitch_reads_to_region("~{bam}", "~{chrom}", start, end)
-
-        write_stitched_sequence_to_fasta(stitched_sequence, "~{prefix}", "~{chrom}", start, end, "~{prefix}.fa" )
-
-
-        CODE
+        python extract_target_sequence.py \
+          -b ~{bam} \
+          -r ~{chrom}:~{start}-~{end} \
+          -o ~{prefix}.fa
 
     >>>
 
