@@ -43,6 +43,7 @@ workflow ExtractTargetSeq {
         input:
             bam = input_bam_h2,
             bai = input_bai_h2, 
+            extract_target_sequence_py = extract_target_sequence_py, 
             chrom = chrom,
             start = start,
             end = end,
