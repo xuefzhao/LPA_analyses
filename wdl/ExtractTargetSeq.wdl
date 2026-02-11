@@ -13,7 +13,6 @@ workflow ExtractTargetSeq {
         Int start
         Int end
 
-        String minimap_docker
         String sv_pipeline_base_docker
 
         File? monitoring_script
