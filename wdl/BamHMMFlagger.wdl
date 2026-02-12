@@ -63,7 +63,7 @@ EOF
             --bam ~{bam} \
             --output coverage_file.cov.gz \
             --annotationJson annotations_path.json \
-            --threads ~{threads} \
+            --threads 16 \
             --baselineAnnotation whole_genome
 
         # Run hmm_flagger
@@ -74,7 +74,7 @@ EOF
             --outputDir hmm_flagger_outputs \
             --alphaTsv /home/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv \
             --labelNames Err,Dup,Hap,Col \
-            --threads ~{threads}
+            --threads 16
     >>>
 
     output {
