@@ -28,7 +28,7 @@ workflow BamHMMFlagger {
     output {
         File coverage_file = RunHMMFlagger.coverage_file
         File coverage_index = RunHMMFlagger.coverage_index
-        Directory hmm_outputs = RunHMMFlagger.hmm_outputs
+        File hmm_outputs = RunHMMFlagger.hmm_outputs
     }
 }
 
