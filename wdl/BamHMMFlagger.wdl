@@ -75,12 +75,14 @@ EOF
             --alphaTsv /home/programs/config/alpha_optimum_trunc_exp_gaussian_w_4000_n_50.tsv \
             --labelNames Err,Dup,Hap,Col \
             --threads 16
+
+        tar czvf hmm_flagger.tar.gz hmm_flagger_outputs/
     >>>
 
     output {
         File coverage_file = "coverage_file.cov.gz"
         File coverage_index = "coverage_file.cov.gz.tbi"
-        Directory hmm_outputs = "hmm_flagger_outputs"
+        File hmm_outputs = "hmm_flagger.tar.gz"
     }
 
   RuntimeAttr default_attr = object {
