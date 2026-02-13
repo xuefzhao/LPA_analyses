@@ -87,8 +87,8 @@ EOF
 
   RuntimeAttr default_attr = object {
     cpu_cores: 1,
-    mem_gb: 10 + ceil(size(bam, "GiB")*2),
-    disk_gb: 15 + ceil(size(bam, "GiB")*2),
+    mem_gb: 20 + ceil(size(bam, "GiB")*3),
+    disk_gb: 25 + ceil(size(bam, "GiB")*3),
     boot_disk_gb: 10,
     preemptible_tries: 1,
     max_retries: 1
