@@ -16,6 +16,7 @@ workflow HiFiCNV {
         File sex_specific_cn
         String gcs_out_root_dir
         String docker_pb_hifi_cnv
+        String docker_finalize_log
     }
     parameter_meta {
         exclude_bed:      "BED holding regions that are known to cause artifacts during HiFiCNV data processing (e.g. centromeres)."
