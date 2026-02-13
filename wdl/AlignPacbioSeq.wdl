@@ -11,7 +11,10 @@ workflow AlignPacbioBam {
     call Align {
         input:
             bam = bam,
-            ref_fasta = reference
+            ref_fasta = reference,
+            prefix   = prefix,
+            midfix   = midfix,
+            sample_name  = prefix
     }
 
     output {
