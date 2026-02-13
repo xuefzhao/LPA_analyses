@@ -15,6 +15,7 @@ workflow HiFiCNV {
         File exclude_bed
         File sex_specific_cn
         String gcs_out_root_dir
+        String docker_pb_hifi_cnv
     }
     parameter_meta {
         exclude_bed:      "BED holding regions that are known to cause artifacts during HiFiCNV data processing (e.g. centromeres)."
@@ -40,13 +41,37 @@ workflow HiFiCNV {
             ref_fasta = ref_fasta,
             ref_fasta_fai = ref_fasta_fai,
             exclude_bed = exclude_bed,
+            docker_image = docker_pb_hifi_cnv,
             sex_specific_cn = sex_specific_cn
         }
 
-    call FinalizeToFile as FinalizeLog { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.log }
-    call FinalizeToFile as FinalizeVCF { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.vcf }
-    call FinalizeToFile as FinalizeBedGraph { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.bedgraph }
-    call FinalizeToFile as FinalizeBigWig { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.depth_bw }
+    call FinalizeToFile as FinalizeLog { 
+        input: 
+            outdir = outdir + '/~{InferSampleName.sample_name}', 
+            file = PacBioHiFiCNV.log,
+            docker_image = docker_finalize_log
+            }
+
+    call FinalizeToFile as FinalizeVCF { 
+        input: 
+            outdir = outdir + '/~{InferSampleName.sample_name}', 
+            file = PacBioHiFiCNV.vcf,
+            docker_image = docker_finalize_log
+        }
+
+    call FinalizeToFile as FinalizeBedGraph { 
+        input: 
+            outdir = outdir + '/~{InferSampleName.sample_name}', 
+            file = PacBioHiFiCNV.bedgraph ,
+            docker_image = docker_finalize_log
+        }
+
+    call FinalizeToFile as FinalizeBigWig { 
+        input: 
+            outdir = outdir + '/~{InferSampleName.sample_name}', 
+            file = PacBioHiFiCNV.depth_bw ,
+            docker_image = docker_finalize_log
+        }
 
     output {
         Map[String, String] hificnv_outs = {'vcf': FinalizeVCF.gcs_path,
@@ -65,6 +90,8 @@ task PacBioHiFiCNV {
         String output_prefix
         File ref_fasta
         File ref_fasta_fai
+
+        String docker_image
 
         File exclude_bed
         File sex_specific_cn
@@ -115,7 +142,7 @@ task PacBioHiFiCNV {
         disks: "local-disk " +  select_first([runtime_attr.disk_gb,           default_attr.disk_gb]) + " SSD"
         preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
         maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
-        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
+        docker:                 docker_image
     }
 }
 
@@ -186,6 +213,7 @@ task FinalizeToFile {
         String outdir
         String? name
 
+        String docker_image
         File? keyfile
 
         RuntimeAttr? runtime_attr_override
@@ -224,7 +252,7 @@ task FinalizeToFile {
         bootDiskSizeGb:         select_first([runtime_attr.boot_disk_gb,      default_attr.boot_disk_gb])
         preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
         maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
-        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
+        docker:                 docker_image
     }
 }
 
