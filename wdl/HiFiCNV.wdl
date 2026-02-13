@@ -2,10 +2,6 @@ version 1.0
 
 import "Structs.wdl"
 
-import "Utils.wdl"
-
-import "Finalize.wdl" as FF
-
 workflow HiFiCNV {
     meta {
         desciption:
@@ -30,7 +26,7 @@ workflow HiFiCNV {
     String outdir = sub(gcs_out_root_dir, "/$", "") + "/~{workflow_name}"
 
 
-    call Utils.InferSampleName { 
+    call InferSampleName { 
         input: 
             bam = bam, 
             bai = bai
@@ -47,10 +43,10 @@ workflow HiFiCNV {
             sex_specific_cn = sex_specific_cn
         }
 
-    call FF.FinalizeToFile as FinalizeLog { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.log }
-    call FF.FinalizeToFile as FinalizeVCF { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.vcf }
-    call FF.FinalizeToFile as FinalizeBedGraph { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.bedgraph }
-    call FF.FinalizeToFile as FinalizeBigWig { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.depth_bw }
+    call FinalizeToFile as FinalizeLog { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.log }
+    call FinalizeToFile as FinalizeVCF { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.vcf }
+    call FinalizeToFile as FinalizeBedGraph { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.bedgraph }
+    call FinalizeToFile as FinalizeBigWig { input: outdir = outdir + '/~{InferSampleName.sample_name}', file = PacBioHiFiCNV.depth_bw }
 
     output {
         Map[String, String] hificnv_outs = {'vcf': FinalizeVCF.gcs_path,
@@ -122,3 +118,114 @@ task PacBioHiFiCNV {
         docker:                 select_first([runtime_attr.docker,            default_attr.docker])
     }
 }
+
+task InferSampleName {
+    meta {
+        description: "Infer sample name encoded on the @RG line of the header section. Fails if multiple values found, or if SM ~= unnamedsample."
+    }
+
+    parameter_meta {
+        bam: {
+            localization_optional: true,
+            description: "BAM file"
+        }
+    }
+
+    input {
+        File bam
+        File bai
+    }
+
+
+
+    command <<<
+        set -euxo pipefail
+
+        export GCS_OAUTH_TOKEN=$(gcloud auth application-default print-access-token)
+        samtools view -H ~{bam} > header.txt
+        if ! grep -q '^@RG' header.txt; then echo "No read group line found!" && exit 1; fi
+
+        grep '^@RG' header.txt | sed 's/\t/\n/g' | grep '^SM:' | sed 's/SM://g' | sort | uniq > sample.names.txt
+        if [[ $(wc -l sample.names.txt) -gt 1 ]]; then echo "Multiple sample names found!" && exit 1; fi
+        if grep -iq "unnamedsample" sample.names.txt; then echo "Sample name found to be unnamedsample!" && exit 1; fi
+    >>>
+
+    output {
+        String sample_name = read_string("sample.names.txt")
+    }
+
+    runtime {
+        cpu:            1
+        memory:         "4 GiB"
+        disks:          "local-disk 100 HDD"
+        bootDiskSizeGb: 10
+        preemptible:    2
+        maxRetries:     1
+        docker:         "us.gcr.io/broad-dsp-lrma/lr-basic:0.1.1"
+    }
+}
+
+task FinalizeToFile {
+
+    meta{
+        description: "Copies the given file to the specified bucket."
+    }
+
+    parameter_meta {
+        file: {
+            description: "file to finalize",
+            localization_optional: true
+        }
+        keyfile : "[optional] File used to key this finaliation.  Finalization will not take place until the KeyFile exists.  This can be used to force the finaliation to wait until a certain point in a workflow.  NOTE: The latest WDL development spec includes the `after` keyword which will obviate this."
+        outdir: "directory to which files should be uploaded"
+        name:   "name to set for uploaded file"
+    }
+
+    input {
+        File file
+        String outdir
+        String? name
+
+        File? keyfile
+
+        RuntimeAttr? runtime_attr_override
+    }
+
+
+
+    String gcs_output_dir = sub(outdir, "/+$", "")
+    String gcs_output_file = gcs_output_dir + "/" + select_first([name, basename(file)])
+
+    command <<<
+        set -euxo pipefail
+
+        gsutil -m cp "~{file}" "~{gcs_output_file}"
+    >>>
+
+    output {
+        String gcs_path = gcs_output_file
+    }
+
+    #########################
+    RuntimeAttr default_attr = object {
+        cpu_cores:          1,
+        mem_gb:             1,
+        disk_gb:            10,
+        boot_disk_gb:       10,
+        preemptible_tries:  2,
+        max_retries:        2,
+        docker:             "us.gcr.io/broad-dsp-lrma/lr-finalize:0.1.2"
+    }
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+    runtime {
+        cpu:                    select_first([runtime_attr.cpu_cores,         default_attr.cpu_cores])
+        memory:                 select_first([runtime_attr.mem_gb,            default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " +  select_first([runtime_attr.disk_gb,           default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb:         select_first([runtime_attr.boot_disk_gb,      default_attr.boot_disk_gb])
+        preemptible:            select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries:             select_first([runtime_attr.max_retries,       default_attr.max_retries])
+        docker:                 select_first([runtime_attr.docker,            default_attr.docker])
+    }
+}
+
+
