@@ -62,13 +62,20 @@ workflow ExtractTargetSeq {
             docker_image = sv_pipeline_base_docker
     }
 
+    call CreateSequenceDictionary {
+        input:
+            reference_fasta = ConcatFasta.merged_fasta
+    }
+
+
     output {
         File seq = ConcatFasta.merged_fasta
         File fai = ConcatFasta.fasta_index    
+        File dict = CreateSequenceDictionary.reference_dict
     }
 }
 
- 
+
 task ExtractSeq {
     input {
         File bam
@@ -180,4 +187,34 @@ task ConcatFasta {
     preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
     maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
   }
+}
+
+task CreateSequenceDictionary {
+
+    input {
+        File reference_fasta
+        String gatk_docker = "broadinstitute/gatk:4.5.0.0"
+    }
+
+    command <<<
+        set -euo pipefail
+
+        # Derive dictionary filename from FASTA
+        base_name=$(basename ~{reference_fasta} .fa)
+        base_name=${base_name%.fasta}
+
+        gatk CreateSequenceDictionary \
+            -R ~{reference_fasta} \
+            -O ${base_name}.dict
+    >>>
+
+    output {
+        File reference_dict = "${basename(reference_fasta, '.fa')}.dict"
+    }
+
+    runtime {
+        docker: gatk_docker
+        memory: "4G"
+        cpu: 1
+    }
 }
