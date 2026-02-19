@@ -43,7 +43,7 @@ workflow AssemblySeqLpaAnalyses {
     call ExtractRegion as extract_region2 {
         input:
             bam = bam2,
-            bai = bai2
+            bai = bai2,
             chrom = chrom,
             start = start,
             end = end,
