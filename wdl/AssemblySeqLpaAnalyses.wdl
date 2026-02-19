@@ -152,19 +152,18 @@ task ExtractRegion {
     }
 
     String output_prefix = "region_" + chrom + "_" + start + "_" + end
-
+    String prefix = basename(bam,".bam")
     command <<<
         set -euo pipefail
 
-        gatk PrintReads \
-            -I ~{bam} \
-            -L ~{chrom}:~{start}-~{end} \
-            --interval-merging-rule ALL \
-            -O ~{output_prefix}.bam
+        gsutil cp ~{bam} ./
+        samtools view -b ~{prefix}.bam ~{chrom}:~{start}-~{end} > ~{output_prefix}.bam
+        samtools index ~{output_prefix}.bam
     >>>
 
     output {
         File region_bam = "~{output_prefix}.bam"
+        File region_bai = "~{output_prefix}.bam.bai"
     }
 
     RuntimeAttr default_attr = object {
