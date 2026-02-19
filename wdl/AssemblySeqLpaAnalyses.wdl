@@ -8,6 +8,8 @@ workflow AssemblySeqLpaAnalyses {
     input {
         File bam1
         File bam2
+        File bai1
+        File bai2
         File fasta1
         File fasta2
         File annotation_file
@@ -30,6 +32,7 @@ workflow AssemblySeqLpaAnalyses {
     call ExtractRegion as extract_region1 {
         input:
             bam = bam1,
+            bai = bai1,
             chrom = chrom,
             start = start,
             end = end,
@@ -40,6 +43,7 @@ workflow AssemblySeqLpaAnalyses {
     call ExtractRegion as extract_region2 {
         input:
             bam = bam2,
+            bai = bai2
             chrom = chrom,
             start = start,
             end = end,
@@ -139,6 +143,7 @@ workflow AssemblySeqLpaAnalyses {
 task ExtractRegion {
     input {
         File bam
+        File bai
         String chrom
         Int start
         Int end
