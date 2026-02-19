@@ -49,14 +49,14 @@ workflow AssemblySeqLpaAnalyses {
 
     call GetUniqueReads as unique_reads1 {
         input:
-            bam = extract_region1.bam,
+            bam = extract_region1.region_bam,
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_get_unique_reads
     }
 
     call GetUniqueReads as unique_reads2 {
         input:
-            bam = extract_region2.bam,
+            bam = extract_region2.region_bam,
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_get_unique_reads
     }
@@ -158,7 +158,7 @@ task ExtractRegion {
     >>>
 
     output {
-        File bam = "~{output_prefix}.bam"
+        File region_bam = "~{output_prefix}.bam"
     }
 
     RuntimeAttr default_attr = object {
