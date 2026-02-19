@@ -6,10 +6,10 @@ import "Structs.wdl"
 workflow AssemblySeqLpaAnalyses {
 
     input {
-        File bam1
-        File bam2
-        File bai1
-        File bai2
+        String bam1
+        String bam2
+        String bai1
+        String bai2
         File fasta1
         File fasta2
         File annotation_file
@@ -142,8 +142,8 @@ workflow AssemblySeqLpaAnalyses {
 
 task ExtractRegion {
     input {
-        File bam
-        File bai
+        String bam
+        String bai
         String chrom
         Int start
         Int end
