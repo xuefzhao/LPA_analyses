@@ -159,6 +159,7 @@ task ExtractRegion {
         gatk PrintReads \
             -I ~{bam} \
             -L ~{chrom}:~{start}-~{end} \
+            --interval-merging-rule ALL \
             -O ~{output_prefix}.bam
     >>>
 
