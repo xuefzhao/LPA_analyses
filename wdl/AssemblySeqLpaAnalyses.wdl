@@ -157,6 +157,7 @@ task ExtractRegion {
         set -euo pipefail
 
         gsutil cp ~{bam} ./
+        gsutil cp ~{bai} ./
         samtools view -b ~{prefix}.bam ~{chrom}:~{start}-~{end} > ~{output_prefix}.bam
         samtools index ~{output_prefix}.bam
     >>>
