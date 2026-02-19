@@ -79,8 +79,8 @@ workflow AssemblySeqLpaAnalyses {
 
     call AnnotateSequences as annotate_seq1{
         input:
-            target_fa = fasta_reads1.fasta,
-            target_fai = fasta_reads1.fasta_fai,
+            target_fa = fasta_reads1.target_fasta,
+            target_fai = fasta_reads1.target_fasta_fai,
             annotation_file = annotation_file,
             run_blast_from_table = script_run_blast_from_table,
             docker_image = docker_image,
@@ -89,8 +89,8 @@ workflow AssemblySeqLpaAnalyses {
 
     call AnnotateSequences as annotate_seq2{
         input:
-            target_fa = fasta_reads2.fasta,
-            target_fai = fasta_reads2.fasta_fai,
+            target_fa = fasta_reads2.target_fasta,
+            target_fai = fasta_reads2.target_fasta_fai,
             annotation_file = annotation_file,
             run_blast_from_table = script_run_blast_from_table,
             docker_image = docker_image,
@@ -99,8 +99,8 @@ workflow AssemblySeqLpaAnalyses {
 
     call CutSequencesToRegions as cut_to_region1 {
         input:
-            target_fa = fasta_reads1.fasta,
-            target_fai = fasta_reads1.fasta_fai,
+            target_fa = fasta_reads1.target_fasta,
+            target_fai = fasta_reads1.target_fasta_fai,
             annotations = annotate_seq1.annotated,
             extract_spanned_regions = script_extract_spanned_regions,
             docker_image = docker_image,
@@ -109,8 +109,8 @@ workflow AssemblySeqLpaAnalyses {
 
     call CutSequencesToRegions as cut_to_region2 {
         input:
-            target_fa = fasta_reads2.fasta,
-            target_fai = fasta_reads2.fasta_fai,
+            target_fa = fasta_reads2.target_fasta,
+            target_fai = fasta_reads2.target_fasta_fai,
             annotations = annotate_seq2.annotated,
             extract_spanned_regions = script_extract_spanned_regions,
             docker_image = docker_image,
@@ -244,8 +244,8 @@ task ExtractFastaReads {
     >>>
 
     output {
-        File fasta = "~{output_prefix}_reads.fa"
-        File fasta_fai = "~{output_prefix}_reads.fa.fai"
+        File target_fasta = "~{output_prefix}_reads.fa"
+        File target_fasta_fai = "~{output_prefix}_reads.fa.fai"
     }
 
     RuntimeAttr default_attr = object {
