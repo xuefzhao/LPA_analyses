@@ -289,7 +289,8 @@ task AnnotateSequences {
     String prefix = basename(target_fa, ".fa")
     command <<<
         set -euo pipefail
-
+        wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.17.0+-x64-linux.tar.gz
+        tar zxvf ncbi-blast-2.17.0+-x64-linux.tar.gz
         bash ~{run_blast_from_table} ~{annotation_file} ~{target_fa} ~{prefix}.tsv
 
     >>>
