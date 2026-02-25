@@ -55,6 +55,9 @@ workflow AssemblySeqLpaAnalyses {
         input:
             bam = extract_region1.region_bam,
             docker_image = docker_image,
+            chrom = chrom, 
+            start = start,
+            end = end,
             runtime_attr_override = runtime_attr_get_unique_reads
     }
 
@@ -62,6 +65,9 @@ workflow AssemblySeqLpaAnalyses {
         input:
             bam = extract_region2.region_bam,
             docker_image = docker_image,
+            chrom = chrom,
+            start = start,
+            end = end,
             runtime_attr_override = runtime_attr_get_unique_reads
     }
 
@@ -158,13 +164,13 @@ task ExtractRegion {
 
         gsutil cp ~{bam} ./
         gsutil cp ~{bai} ./
-        samtools view -b ~{prefix}.bam ~{chrom}:~{start}-~{end} > ~{output_prefix}.bam
-        samtools index ~{output_prefix}.bam
+        samtools view -b ~{prefix}.bam ~{chrom}:~{start}-~{end} > ~{prefix}.~{output_prefix}.bam
+        samtools index ~{prefix}.~{output_prefix}.bam
     >>>
 
     output {
-        File region_bam = "~{output_prefix}.bam"
-        File region_bai = "~{output_prefix}.bam.bai"
+        File region_bam = "~{prefix}.~{output_prefix}.bam"
+        File region_bai = "~{prefix}.~{output_prefix}.bam.bai"
     }
 
     RuntimeAttr default_attr = object {
@@ -189,24 +195,142 @@ task ExtractRegion {
     }
 }
 
+
 task GetUniqueReads {
-    input {
-        File bam
-        String docker_image
-        RuntimeAttr? runtime_attr_override
+
+  input {
+    File bam               # Already restricted to target region
+    String chrom
+    Int start              # 1-based inclusive
+    Int end                # 1-based inclusive
+    String docker_image
+    RuntimeAttr? runtime_attr_override
+  }
+
+  String prefix = basename(bam , ".bam")
+  command <<<
+    set -euo pipefail
+
+    REGION_START=~{start}
+    REGION_END=~{end}
+
+    # Extract alignments (exclude unmapped)
+    samtools view -F 4 ~{bam} > reads.sam
+
+    # Count unique read IDs
+    cut -f1 reads.sam | sort | uniq > unique_reads.txt
+    COUNT=$(wc -l < unique_reads.txt)
+
+    if [ "$COUNT" -eq 0 ]; then
+        echo "No reads found in region" > result.tsv
+        exit 0
+    fi
+
+    if [ "$COUNT" -eq 1 ]; then
+        cat unique_reads.txt > result.tsv
+        exit 0
+    fi
+
+    # Build alignment table
+    echo -e "read_id\treference_region\tread_aligned_region\taligned_read_length\taligned_reference_length\tread_total_length" > alignment_table.tsv
+
+    awk -v chrom="~{chrom}" -v rstart="$REGION_START" -v rend="$REGION_END" '
+    function cigar_parse(cigar,    len,type,aligned_read,aligned_ref) {
+        aligned_read=0
+        aligned_ref=0
+        while (match(cigar, /[0-9]+[MIDNSHP=X]/)) {
+            len=substr(cigar, RSTART, RLENGTH-1)
+            type=substr(cigar, RSTART+RLENGTH-1, 1)
+
+            if (type=="M" || type=="=" || type=="X") {
+                aligned_read+=len
+                aligned_ref+=len
+            }
+            else if (type=="I") {
+                aligned_read+=len
+            }
+            else if (type=="D" || type=="N") {
+                aligned_ref+=len
+            }
+            cigar=substr(cigar, RSTART+RLENGTH)
+        }
+        return aligned_read "|" aligned_ref
     }
 
-    String output_prefix = basename(bam, ".bam")
+    {
+        read_id=$1
+        pos=$4
+        cigar=$6
+        read_len=length($10)
 
-    command <<<
-        set -euo pipefail
+        split(cigar_parse(cigar), arr, "|")
+        aligned_read=arr[1]
+        aligned_ref=arr[2]
 
-        samtools view -H ~{bam} > /dev/null
-        samtools view ~{bam} | cut -f1 | sort | uniq > ~{output_prefix}_reads.txt
-    >>>
+        ref_start=pos
+        ref_end=pos + aligned_ref - 1
+
+        read_aln_start=1
+        read_aln_end=aligned_read
+
+        print read_id "\t" chrom ":" ref_start "-" ref_end "\t" \
+              read_aln_start "-" read_aln_end "\t" \
+              aligned_read "\t" aligned_ref "\t" read_len >> "alignment_table.tsv"
+
+        print read_id "\t" ref_start "\t" ref_end >> "coords.tmp"
+    }
+    ' reads.sam
+
+    # Collapse multiple alignments per read
+    awk '
+    {
+      id=$1; s=$2; e=$3;
+      if (!(id in min) || s < min[id]) min[id]=s;
+      if (!(id in max) || e > max[id]) max[id]=e;
+    }
+    END {
+      for (id in min)
+        print id "\t" min[id] "\t" max[id];
+    }
+    ' coords.tmp > merged_coords.tmp
+
+    # Check single-read full coverage
+    awk -v rstart="$REGION_START" -v rend="$REGION_END" '
+    ($2 <= rstart && $3 >= rend) { print $1 > "result.tsv"; exit 0 }
+    ' merged_coords.tmp
+
+    if [ -f result.tsv ]; then
+        exit 0
+    fi
+
+    # Otherwise test two-read union
+    FOUND=0
+    while read id1 s1 e1; do
+      while read id2 s2 e2; do
+        if [ "$id1" != "$id2" ]; then
+          MIN_START=$(( s1 < s2 ? s1 : s2 ))
+          MAX_END=$(( e1 > e2 ? e1 : e2 ))
+
+          if [ "$MIN_START" -le "$REGION_START" ] && [ "$MAX_END" -ge "$REGION_END" ]; then
+            echo -e "$id1\n$id2" > result.tsv
+            FOUND=1
+            break 2
+          fi
+        fi
+      done < merged_coords.tmp
+    done < merged_coords.tmp
+
+    if [ "$FOUND" -eq 0 ]; then
+        echo "No single or pair of reads fully cover region" > result.tsv
+    fi
+
+    mv result.tsv ~{prefix}.reads
+    mv alignment_table.tsv  ~{prefix}.alignment_table.tsv
+  >>>
 
     output {
-        File reads = "~{output_prefix}_reads.txt"
+        File reads = "~{prefix}.reads"
+        File alignment_table = "~{prefix}.alignment_table.tsv"
     }
 
     RuntimeAttr default_attr = object {
