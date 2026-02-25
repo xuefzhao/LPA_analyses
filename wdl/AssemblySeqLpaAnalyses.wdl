@@ -350,9 +350,8 @@ task GetUniqueReads {
 
     mv result.tsv ~{prefix}.reads
     mv alignment_table.tsv ~{prefix}.alignment_table.tsv
->>>
-
   >>>
+
 
     output {
         File reads = "~{prefix}.reads"
