@@ -580,7 +580,7 @@ task AddPrefixIfMissing {
     command <<<
         set -euo pipefail
 
-        awk -v prefix="${prefix_string}" '
+        awk -v prefix="~{prefix_string}" '
         /^>/ {
             header = substr($0, 2)
             split(header, parts, " ")
