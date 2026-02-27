@@ -27,6 +27,7 @@ workflow AssemblySeqLpaAnalyses {
         RuntimeAttr? runtime_attr_annotate_sequences
         RuntimeAttr? runtime_attr_cut_sequences_to_regions
         RuntimeAttr? runtime_attr_combine_sequences
+        RuntimeAttr? runtime_attr_add_prefix_to_read
     }
 
     call ExtractRegion as extract_region1 {
@@ -134,6 +135,14 @@ workflow AssemblySeqLpaAnalyses {
             hap_labels = ["hap1", "hap2"],
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_combine_sequences
+    }
+
+    call AddPrefixIfMissing{
+        input:
+            fasta = CombineSequences.combined_fasta,
+            prefix_string = prefix,
+            docker_image = docker_image,
+            runtime_attr_override = runtime_attr_add_prefix_to_read
     }
 
     output {
@@ -533,6 +542,68 @@ task CombineSequences {
     output {
         File combined_fasta = "~{prefix}.fa"
         File combined_fai = "~{prefix}.fa.fai"
+    }
+
+    RuntimeAttr default_attr = object {
+        cpu_cores: 2,
+        mem_gb: 8,
+        disk_gb: 10,
+        boot_disk_gb: 10,
+        preemptible_tries: 1,
+        max_retries: 1
+    }
+
+    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
+
+    runtime {
+        cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
+        memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
+        disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
+        bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
+        docker: docker_image
+        preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
+        maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+    }
+}
+
+task AddPrefixIfMissing {
+
+    input {
+        File fasta
+        String prefix_string
+        String docker_image
+        RuntimeAttr? runtime_attr_override
+
+    }
+
+    String file_prefix = basename(fasta, '.fa')
+    command <<<
+        set -euo pipefail
+
+        awk -v prefix="${prefix_string}" '
+        /^>/ {
+            header = substr($0, 2)
+            split(header, parts, " ")
+            readname = parts[1]
+
+            if (index(readname, prefix) == 0) {
+                parts[1] = prefix "_" readname
+            }
+
+            printf(">%s", parts[1])
+
+            for (i = 2; i <= length(parts); i++) {
+                printf(" %s", parts[i])
+            }
+            printf("\n")
+            next
+        }
+        { print }
+        ' ~{fasta} > ~{file_prefix}.read_id_fix.fa
+    >>>
+
+    output {
+        File updated_fasta = " ~{file_prefix}.read_id_fix.fa"
     }
 
     RuntimeAttr default_attr = object {
