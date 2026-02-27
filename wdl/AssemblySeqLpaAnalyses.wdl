@@ -146,8 +146,8 @@ workflow AssemblySeqLpaAnalyses {
     }
 
     output {
-        File combined_fasta = CombineSequences.combined_fasta
-        File combined_fai = CombineSequences.combined_fai
+        File combined_fasta = AddPrefixIfMissing.updated_fasta
+        File combined_fai = AddPrefixIfMissing.updated_fasta_fai
     }
 }
 
@@ -600,10 +600,13 @@ task AddPrefixIfMissing {
         }
         { print }
         ' ~{fasta} > ~{file_prefix}.read_id_fix.fa
+
+        samtools faidx ~{file_prefix}.read_id_fix.fa
     >>>
 
     output {
         File updated_fasta = " ~{file_prefix}.read_id_fix.fa"
+        File updated_fasta_fai = "~{file_prefix}.read_id_fix.fa.fai"
     }
 
     RuntimeAttr default_attr = object {
