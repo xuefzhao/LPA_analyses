@@ -13,6 +13,7 @@ workflow AssemblySeqLpaAnalyses {
         File fasta1
         File fasta2
         File annotation_file
+        Int flank_length
 
         File script_run_blast_from_table
         File script_extract_spanned_regions
@@ -113,6 +114,7 @@ workflow AssemblySeqLpaAnalyses {
             target_fa = fasta_reads1.target_fasta,
             target_fai = fasta_reads1.target_fasta_fai,
             annotations = annotate_seq1.annotated,
+            flank_length = flank_length,
             extract_spanned_regions = script_extract_spanned_regions,
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_cut_sequences_to_regions
@@ -123,6 +125,7 @@ workflow AssemblySeqLpaAnalyses {
             target_fa = fasta_reads2.target_fasta,
             target_fai = fasta_reads2.target_fasta_fai,
             annotations = annotate_seq2.annotated,
+            flank_length = flank_length,
             extract_spanned_regions = script_extract_spanned_regions,
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_cut_sequences_to_regions
@@ -484,6 +487,7 @@ task CutSequencesToRegions {
         File target_fa
         File target_fai
         File annotations
+        Int flank_length
         File extract_spanned_regions
         String docker_image
         RuntimeAttr? runtime_attr_override
@@ -493,7 +497,7 @@ task CutSequencesToRegions {
     command <<<
         set -euo pipefail
 
-        python ~{extract_spanned_regions} ~{target_fa} ~{annotations}  ~{prefix}.target.fa
+        python ~{extract_spanned_regions} ~{target_fa} ~{annotations}  ~{flank_length} ~{prefix}.target.fa
 
     >>>
 
