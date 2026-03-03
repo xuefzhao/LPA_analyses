@@ -357,7 +357,7 @@ task GetUniqueReads {
     done < merged_coords.tmp
 
     if [ "$FOUND" -eq 0 ]; then
-            echo "No single or pair of reads fully cover region" > result.tsv
+            echo "" > result.tsv
     fi
 
     mv result.tsv ~{prefix}.reads
