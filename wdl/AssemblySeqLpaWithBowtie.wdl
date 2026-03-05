@@ -168,14 +168,15 @@ task PolishBam {
         RuntimeAttr? runtime_attr_override
     }
 
+    String prefix = basename(bam_file, ".bam")
     command <<<
         set -euo pipefail
-        python3 ~{script} ~{bam_file} LPA_seq.cds.vs.HG01573.polished.bam LPA_seq.cds.vs.HG01573.vcf
+        python3 ~{script} ~{bam_file} ~{prefix}.polished.bam ~{prefix}.vcf
     >>>
 
     output {
-        File polished_bam = "LPA_seq.cds.vs.HG01573.polished.bam"
-        File vcf = "LPA_seq.cds.vs.HG01573.vcf"
+        File polished_bam = "~{prefix}.polished.bam"
+        File vcf = "~{prefix}.vcf"
     }
 
     RuntimeAttr default_attr = object {
@@ -212,13 +213,14 @@ task ExtractGeneStructure {
         RuntimeAttr? runtime_attr_override
     }
 
+    String prefix = basename(polished_bam, ".bam")
     command <<<
         set -euo pipefail
-        python3 ~{script} -b ~{polished_bam} -f ~{genome_fasta} -o LPA_seq.cds.vs.HG01573.polished.tsv
+        python3 ~{script} -b ~{polished_bam} -f ~{genome_fasta} -o ~{prefix}.tsv
     >>>
 
     output {
-        File tsv = "LPA_seq.cds.vs.HG01573.polished.tsv"
+        File tsv = "~{prefix}.tsv"
     }
 
     RuntimeAttr default_attr = object {
@@ -254,13 +256,14 @@ task RecognizeGenePattern {
         RuntimeAttr? runtime_attr_override
     }
 
+    String prefix = basename(tsv_file, ".tsv")
     command <<<
         set -euo pipefail
-        python3 ~{script} ~{tsv_file} LPA_seq.cds.vs.HG01573.polished.struc
+        python3 ~{script} ~{tsv_file} ~{prefix}.struc
     >>>
 
     output {
-        File output_struc = "LPA_seq.cds.vs.HG01573.polished.struc"
+        File output_struc = "~{prefix}.struc"
     }
 
     RuntimeAttr default_attr = object {
