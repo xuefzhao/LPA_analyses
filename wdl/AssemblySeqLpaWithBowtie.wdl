@@ -27,6 +27,7 @@ workflow LPA_alignment_pipeline {
     call AlignExonSeq {
         input:
             prefix = genome_prefix,
+            index_tar = BuildBowtieIndex.index_tar,
             exon_fasta = exon_fasta,
             docker_image = bowtie_docker,
             runtime_attr_override = runtime_attr_override
@@ -78,11 +79,14 @@ task BuildBowtieIndex {
 
     command <<<
         set -euo pipefail
-        bowtie2-build ~{fasta} ~{prefix}
+        mkdir -p index_dir
+        bowtie2-build ~{fasta} index_dir/~{prefix}
+        tar czf ~{prefix}_index.tar.gz -C index_dir .
+
     >>>
 
     output {
-        File index_prefix = "~{prefix}.1.bt2"
+        File index_tar = "~{prefix}_index.tar.gz"
     }
 
     RuntimeAttr default_attr = object {
@@ -113,6 +117,7 @@ task BuildBowtieIndex {
 task AlignExonSeq {
     input {
         String prefix
+        File index_tar
         File exon_fasta
         String docker_image
         RuntimeAttr? runtime_attr_override
@@ -120,7 +125,10 @@ task AlignExonSeq {
 
     command <<<
         set -euo pipefail
-        bowtie2 -x ~{prefix} -f -U ~{exon_fasta} -k 100 | samtools sort -o LPA_seq.cds.vs.~{prefix}.bam
+        mkdir -p index_dir
+        tar xzf ~{index_tar} -C index_dir
+        cd index_dir
+        bowtie2 -x ~{prefix} -f -U ~{exon_fasta} -k 100 | samtools sort -o ../LPA_seq.cds.vs.~{prefix}.bam
     >>>
 
     output {
