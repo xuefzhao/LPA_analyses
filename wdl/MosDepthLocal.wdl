@@ -6,7 +6,10 @@ workflow MosDepthLocal {
     input {
         File bam
         File bai
-        String region
+        String chrom
+        int start
+        int end
+        int flank
         String prefix
         String midfix
         Boolean quantize_mode
@@ -17,7 +20,10 @@ workflow MosDepthLocal {
         input:
             bam = bam,
             bai = bai,
-            region = region,
+            chrom = chrom,
+            start = start, 
+            end = end,
+            flank = flank,
             prefix = prefix,
             midfix = midfix,
             docker_image = sv_pipeline_base_docker
@@ -27,7 +33,7 @@ workflow MosDepthLocal {
         input:
             bam = ExtractRegionWithFlank.region_bam,
             bai = ExtractRegionWithFlank.region_bai,
-            contig = region,  # pass the original region
+            contig = chrom,  # pass the original region
             prefix = prefix,
             quantize_mode = quantize_mode
     }
@@ -50,7 +56,10 @@ task ExtractRegionWithFlank {
     input {
         File bam
         File bai
-        String region  # format: chr:start-end
+        String chrom  # format: chr:start-end
+        Int start
+        Int end
+        Int flank
         String prefix
         String midfix  # optional string to include in output BAM name
         Int flank = 10000  # 10Kb flank
@@ -60,9 +69,6 @@ task ExtractRegionWithFlank {
 
     command <<<
         set -euo pipefail
-
-        # parse chr, start, end from input region
-        IFS=':-' read -r chr start end <<< "~{region}"
 
         # add flanks
         start_flank=$((start - flank))
