@@ -62,7 +62,6 @@ task ExtractRegionWithFlank {
         Int flank
         String prefix
         String midfix  # optional string to include in output BAM name
-        Int flank = 10000  # 10Kb flank
         String docker_image = "quay.io/biocontainers/samtools:1.17--h8ee4bcc_0"
         RuntimeAttr? runtime_attr_override
     }
