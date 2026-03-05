@@ -1,38 +1,33 @@
 version 1.0
 
 import "Structs.wdl"
+import "RemoteTabixWithGatk.wdl" as RemoteTabixWithGatk
 
 workflow MosDepthLocal {
     input {
         File bam
         File bai
         String chrom
-        Int start
-        Int end
-        Int flank
+        String region
         String prefix
         String midfix
         Boolean quantize_mode
         String sv_pipeline_base_docker
     }
 
-    call ExtractRegionWithFlank {
+    call RemoteTabixWithGatk.RemoteTabixWithGatk as RemoteTabixWithGatk{
         input:
-            bam = bam,
-            bai = bai,
-            chrom = chrom,
-            start = start, 
-            end = end,
-            flank = flank,
-            prefix = prefix,
-            midfix = midfix,
-            docker_image = sv_pipeline_base_docker
+            input_bam = bam,
+            input_bai = bai,
+            region = region,
+            output_prefix = "~{prefix}_~{midfix}",
+            sv_pipeline_base_docker = sv_pipeline_base_docker
     }
 
     call RunMosDepth {
         input:
-            bam = ExtractRegionWithFlank.region_bam,
-            bai = ExtractRegionWithFlank.region_bai,
+            bam = RemoteTabixWithGatk.regional_bam,
+            bai = RemoteTabixWithGatk.regional_bai,
             contig = chrom,  # pass the original region
             prefix = prefix,
             quantize_mode = quantize_mode
