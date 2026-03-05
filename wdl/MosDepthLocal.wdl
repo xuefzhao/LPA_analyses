@@ -7,9 +7,9 @@ workflow MosDepthLocal {
         File bam
         File bai
         String chrom
-        int start
-        int end
-        int flank
+        Int start
+        Int end
+        Int flank
         String prefix
         String midfix
         Boolean quantize_mode
