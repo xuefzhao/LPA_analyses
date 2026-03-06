@@ -14,11 +14,9 @@ workflow MosDepthLocal {
         String chrom
         String midfix
         String gatk_docker
-        String sv_pipeline_base_docker
         RuntimeAttr? runtime_attr_extract_region
 
         Boolean? quantize_mode = false
-        String sv_pipeline_base_docker
     }
 
     call ExtractRegionFromBam.ExtractRegion as ExtractRegion{
@@ -31,16 +29,16 @@ workflow MosDepthLocal {
                 mid_fix = midfix,
                 docker_image = gatk_docker,
                 runtime_attr_override = runtime_attr_extract_region
-        }
+    }
 
-       call RunMosDepth {
+    call RunMosDepth {
             input:
                 bam = ExtractRegion.regional_bam,
                 bai = ExtractRegion.regional_bai,
                 contig = chrom,  # pass the original region
                 prefix = "~{prefix}.~{midfix}",
                 quantize_mode = quantize_mode
-        }
+    }
 
     output {
         File mosdepth_dist = RunMosDepth.dist
@@ -53,62 +51,6 @@ workflow MosDepthLocal {
 }
 
 
-
-
-task ExtractRegionWithFlank {
-    input {
-        File bam
-        File bai
-        String chrom  # format: chr:start-end
-        Int start
-        Int end
-        Int flank
-        String prefix
-        String midfix  # optional string to include in output BAM name
-        String docker_image = "quay.io/biocontainers/samtools:1.17--h8ee4bcc_0"
-        RuntimeAttr? runtime_attr_override
-    }
-
-    command <<<
-        set -euo pipefail
-
-        # add flanks
-        start_flank=$((start - flank))
-        if [ $start_flank -lt 0 ]; then start_flank=0; fi
-        end_flank=$((end + flank))
-
-        output_bam="~{prefix}.~{midfix}.region.bam"
-
-        samtools view -b ~{bam} ${chr}:${start_flank}-${end_flank} > $output_bam
-        samtools index $output_bam
-    >>>
-
-    output {
-        File region_bam = "~{prefix}.~{midfix}.region.bam"
-        File region_bai = "~{prefix}.~{midfix}.region.bam.bai"
-    }
-
-    RuntimeAttr default_attr = object {
-        cpu_cores: 2,
-        mem_gb: 4 + ceil(size(bam,"GiB")),
-        disk_gb: 10 + ceil(size(bam,"GiB")),
-        boot_disk_gb: 10,
-        preemptible_tries: 1,
-        max_retries: 1
-    }
-
-    RuntimeAttr runtime_attr = select_first([runtime_attr_override, default_attr])
-
-    runtime {
-        cpu: select_first([runtime_attr.cpu_cores, default_attr.cpu_cores])
-        memory: select_first([runtime_attr.mem_gb, default_attr.mem_gb]) + " GiB"
-        disks: "local-disk " + select_first([runtime_attr.disk_gb, default_attr.disk_gb]) + " HDD"
-        bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, default_attr.boot_disk_gb])
-        docker: docker_image
-        preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
-        maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
-    }
-}
 
 task RunMosDepth {
     input {
