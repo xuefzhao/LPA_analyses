@@ -163,8 +163,7 @@ workflow LPA_alignment_pipeline {
     }
 
     output {
-        File polished_bam = PolishBam.polished_bam
-        File polished_vcf = PolishBam.vcf
+        File target_fa = AddPrefixIfMissing.updated_fasta
         File polished_tsv = ExtractGeneStructure.tsv
         File gene_structure = RecognizeGenePattern.output_struc
     }
