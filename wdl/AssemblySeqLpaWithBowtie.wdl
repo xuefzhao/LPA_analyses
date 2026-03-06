@@ -148,7 +148,7 @@ workflow LPA_alignment_pipeline {
     call ExtractGeneStructure {
         input:
             polished_bam = PolishBam.polished_bam,
-            genome_fasta = AssemblySeqLpaAnalyses.combined_fasta,
+            genome_fasta = AddPrefixIfMissing.updated_fasta,
             script = extract_exon_script,
             docker_image = python_docker,
             runtime_attr_override = runtime_attr_override
