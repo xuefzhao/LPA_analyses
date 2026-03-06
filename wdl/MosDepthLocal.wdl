@@ -13,6 +13,9 @@ workflow MosDepthLocal {
         Int end
         String chrom
         String midfix
+
+        File Rscript_calculate_kiv2_depth
+
         String gatk_docker
         RuntimeAttr? runtime_attr_extract_region
 
@@ -40,6 +43,16 @@ workflow MosDepthLocal {
                 quantize_mode = quantize_mode
     }
 
+    call EstimateKIV2Depth{
+        depth_file = RunMosDepth.per_base,
+        Rscript_calculate_kiv2_depth = Rscript_calculate_kiv2_depth,
+        pos1 = 160531482, #start of LPA gene
+        pos2 = 160611722, #start of KIV2 units
+        pos3 = 160650498, #end of KIV1 units
+        pos4 = 160664275, #end of LPA gene
+        sample_id = prefix 
+    }
+
     output {
         File mosdepth_dist = RunMosDepth.dist
         File mosdepth_summary = RunMosDepth.summary
@@ -47,6 +60,10 @@ workflow MosDepthLocal {
         File mosdepth_per_base_csi = RunMosDepth.per_base_csi
         File? mosdepth_quantized_bed = RunMosDepth.quantized_bed
         File? mosdepth_quantized_bed_csi = RunMosDepth.quantized_bed_csi
+        File lpa_depth_plot = EstimateKIV2Depth.depth_plot
+        File lpa_depth_stats = EstimateKIV2Depth.depth_stats
+        Float lpa_kiv2_copy = EstimateKIV2Depth.estimated_kiv2
+
     }
 }
 
@@ -116,5 +133,46 @@ task RunMosDepth {
         docker: "us.gcr.io/broad-dsp-lrma/lr-mosdepth:0.3.1"
         preemptible: select_first([runtime_attr.preemptible_tries, default_attr.preemptible_tries])
         maxRetries: select_first([runtime_attr.max_retries, default_attr.max_retries])
+    }
+}
+
+
+task EstimateKIV2Depth {
+    input {
+        File depth_file
+        File Rscript_calculate_kiv2_depth
+        Float pos1
+        Float pos2
+        Float pos3
+        Float pos4
+        String sample_id
+
+        # Runtime parameters
+        String docker_image = "rocker/tidyverse:latest"
+        Int cpu = 2
+        Int memory_gb = 4
+    }
+
+    command {
+        Rscript ~{Rscript_calculate_kiv2_depth} \
+            --input ~{depth_file} \
+            --output ~{sample_id}_depth_plot.pdf \
+            --pos1 ~{pos1} \
+            --pos2 ~{pos2} \
+            --pos3 ~{pos3} \
+            --pos4 ~{pos4} \
+            --stats ~{sample_id}_kiv2_results.txt
+    }
+
+    output {
+        File depth_plot = "~{sample_id}_depth_plot.pdf"
+        File depth_stats = "~{sample_id}_kiv2_results.txt"
+        Float estimated_kiv2 = read_map("~{sample_id}_kiv2_results.txt")["estimated_KIV2"]
+    }
+
+    runtime {
+        docker: docker_image
+        cpu: cpu
+        memory: "~{memory_gb} GB"
     }
 }
