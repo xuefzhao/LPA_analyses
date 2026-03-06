@@ -9,6 +9,7 @@ workflow MosDepthLocal {
 
         Array[File] bam_list          # List of BAMs
         Array[File] bai_list          # List of BAIs (same order as BAM)
+        String[String] sample_list
         Int start
         Int end
         String chrom
@@ -45,7 +46,7 @@ workflow MosDepthLocal {
                 bam = ExtractRegionFromBam.regional_bams[i],
                 bai = ExtractRegionFromBam.regional_bais[i],
                 contig = chrom,  # pass the original region
-                prefix = prefix,
+                prefix = sample_list[i],
                 quantize_mode = quantize_mode
         }
     }
