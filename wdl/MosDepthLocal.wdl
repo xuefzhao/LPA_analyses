@@ -2,36 +2,52 @@ version 1.0
 
 import "Structs.wdl"
 import "RemoteTabixWithGatk.wdl" as RemoteTabixWithGatk
+import "ExtractRegionFromBam.wdl" as ExtractRegionFromBam
 
 workflow MosDepthLocal {
     input {
-        File bam
-        File bai
+
+        Array[File] bam_list          # List of BAMs
+        Array[File] bai_list          # List of BAIs (same order as BAM)
+        Int start
+        Int end
         String chrom
-        String region
-        String prefix
-        String midfix
-        Boolean quantize_mode
+        String mid_fix
+        String gatk_docker
+        String sv_pipeline_base_docker
+        RuntimeAttr? runtime_attr_tabix_bam
+        RuntimeAttr? runtime_attr_extract_region
+        RuntimeAttr? runtime_attr_bam_to_fastq
+
+        Boolean? quantize_mode = false
         String sv_pipeline_base_docker
     }
 
-    call RemoteTabixWithGatk.RemoteTabixWithGatk as RemoteTabixWithGatk{
+    call ExtractRegionFromBam.ExtractRegionFromBam as ExtractRegionFromBam{
         input:
-            input_bam = bam,
-            input_bai = bai,
-            region = region,
-            output_prefix = "~{prefix}_~{midfix}",
-            sv_pipeline_base_docker = sv_pipeline_base_docker
+            bam_list = bam_list,
+            bai_list = bai_list,
+            start = start,
+            end = end, 
+            chrom = chrom, 
+            mid_fix  = mid_fix,
+            gatk_docker = gatk_docker,
+            sv_pipeline_base_docker = sv_pipeline_base_docker,
+            runtime_attr_tabix_bam = runtime_attr_tabix_bam,
+            runtime_attr_extract_region = runtime_attr_extract_region,
+            runtime_attr_bam_to_fastq = runtime_attr_bam_to_fastq
+
     }
 
-    call RunMosDepth {
-        input:
-            bam = RemoteTabixWithGatk.regional_bam,
-            bai = RemoteTabixWithGatk.regional_bai,
-            contig = chrom,  # pass the original region
-            prefix = prefix,
-            quantize_mode = quantize_mode
-    }
+    scatter(i in range(length(ExtractRegionFromBam.regional_bams))) {
+        call RunMosDepth {
+            input:
+                bam = ExtractRegionFromBam.regional_bams[i],
+                bai = ExtractRegionFromBam.regional_bais[i],
+                contig = chrom,  # pass the original region
+                prefix = prefix,
+                quantize_mode = quantize_mode
+        }
 
 
     output {
@@ -108,7 +124,7 @@ task RunMosDepth {
         File bai
         String contig
         String prefix
-        Boolean quantize_mode
+        Boolean? quantize_mode
         RuntimeAttr? runtime_attr_override
     }
 
