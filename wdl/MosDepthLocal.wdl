@@ -50,7 +50,6 @@ workflow MosDepthLocal {
         }
     }
 
-
     output {
         Array[File] mosdepth_dist = RunMosDepth.dist
         Array[File] mosdepth_summary = RunMosDepth.summary
