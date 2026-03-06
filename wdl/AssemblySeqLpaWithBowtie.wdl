@@ -45,7 +45,7 @@ workflow LPA_alignment_pipeline {
     }
 
 
-    call AssemblySeqLpaAnalyses {
+    call AssemblySeqLpaAnalyses.AssemblySeqLpaAnalyses as AssemblySeqLpaAnalyses {
 
         input:
             bam1 = bam1,
