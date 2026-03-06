@@ -6,58 +6,50 @@ import "ExtractRegionFromBam.wdl" as ExtractRegionFromBam
 
 workflow MosDepthLocal {
     input {
-
-        Array[File] bam_list          # List of BAMs
-        Array[File] bai_list          # List of BAIs (same order as BAM)
-        Array[String] sample_list
+        File bam
+        File bai
+        String prefix   
         Int start
         Int end
         String chrom
-        String mid_fix
+        String midfix
         String gatk_docker
         String sv_pipeline_base_docker
-        RuntimeAttr? runtime_attr_tabix_bam
         RuntimeAttr? runtime_attr_extract_region
-        RuntimeAttr? runtime_attr_bam_to_fastq
 
         Boolean? quantize_mode = false
         String sv_pipeline_base_docker
     }
 
-    call ExtractRegionFromBam.ExtractRegionFromBam as ExtractRegionFromBam{
-        input:
-            bam_list = bam_list,
-            bai_list = bai_list,
-            start = start,
-            end = end, 
-            chrom = chrom, 
-            mid_fix  = mid_fix,
-            gatk_docker = gatk_docker,
-            sv_pipeline_base_docker = sv_pipeline_base_docker,
-            runtime_attr_tabix_bam = runtime_attr_tabix_bam,
-            runtime_attr_extract_region = runtime_attr_extract_region,
-            runtime_attr_bam_to_fastq = runtime_attr_bam_to_fastq
-
-    }
-
-    scatter(i in range(length(ExtractRegionFromBam.regional_bams))) {
-        call RunMosDepth {
+    call ExtractRegionFromBam.ExtractRegion as ExtractRegion{
             input:
-                bam = ExtractRegionFromBam.regional_bams[i],
-                bai = ExtractRegionFromBam.regional_bais[i],
+                bam = bam,
+                bai = bai,
+                start = start,
+                end = end,
+                chrom = chrom,
+                mid_fix = midfix,
+                docker_image = gatk_docker,
+                runtime_attr_override = runtime_attr_extract_region
+        }
+
+       call RunMosDepth {
+            input:
+                bam = ExtractRegion.regional_bam,
+                bai = ExtractRegion.regional_bai,
                 contig = chrom,  # pass the original region
-                prefix = sample_list[i],
+                prefix = "~{prefix}.~{midfix}",
                 quantize_mode = quantize_mode
         }
     }
 
     output {
-        Array[File] mosdepth_dist = RunMosDepth.dist
-        Array[File] mosdepth_summary = RunMosDepth.summary
-        Array[File] mosdepth_per_base = RunMosDepth.per_base
-        Array[File] mosdepth_per_base_csi = RunMosDepth.per_base_csi
-        Array[File]? mosdepth_quantized_bed = RunMosDepth.quantized_bed
-        Array[File]? mosdepth_quantized_bed_csi = RunMosDepth.quantized_bed_csi
+        File mosdepth_dist = RunMosDepth.dist
+        File mosdepth_summary = RunMosDepth.summary
+        File mosdepth_per_base = RunMosDepth.per_base
+        File mosdepth_per_base_csi = RunMosDepth.per_base_csi
+        File? mosdepth_quantized_bed = RunMosDepth.quantized_bed
+        File? mosdepth_quantized_bed_csi = RunMosDepth.quantized_bed_csi
     }
 }
 
