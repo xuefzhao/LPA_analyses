@@ -44,13 +44,14 @@ workflow MosDepthLocal {
     }
 
     call EstimateKIV2Depth{
-        depth_file = RunMosDepth.per_base,
-        Rscript_calculate_kiv2_depth = Rscript_calculate_kiv2_depth,
-        pos1 = 160531482, #start of LPA gene
-        pos2 = 160611722, #start of KIV2 units
-        pos3 = 160650498, #end of KIV1 units
-        pos4 = 160664275, #end of LPA gene
-        sample_id = prefix 
+        input:
+            depth_file = RunMosDepth.per_base,
+            Rscript_calculate_kiv2_depth = Rscript_calculate_kiv2_depth,
+            pos1 = 160531482, #start of LPA gene
+            pos2 = 160611722, #start of KIV2 units
+            pos3 = 160650498, #end of KIV1 units
+            pos4 = 160664275, #end of LPA gene
+            sample_id = prefix 
     }
 
     output {
