@@ -50,7 +50,7 @@ workflow LPA_alignment_pipeline {
             chrom = chrom,
             start = start,
             end = end,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_extract_region
     }
 
@@ -61,14 +61,14 @@ workflow LPA_alignment_pipeline {
             chrom = chrom,
             start = start,
             end = end,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_extract_region
     }
 
     call AssemblySeqLpaAnalyses.GetUniqueReads as unique_reads1 {
         input:
             bam = extract_region1.region_bam,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             chrom = chrom, 
             start = start,
             end = end,
@@ -78,7 +78,7 @@ workflow LPA_alignment_pipeline {
     call AssemblySeqLpaAnalyses.GetUniqueReads as unique_reads2 {
         input:
             bam = extract_region2.region_bam,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             chrom = chrom,
             start = start,
             end = end,
@@ -89,7 +89,7 @@ workflow LPA_alignment_pipeline {
         input:
             fasta = fasta1,
             read_list = unique_reads1.reads,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_extract_fasta_reads
     }
 
@@ -97,7 +97,7 @@ workflow LPA_alignment_pipeline {
         input:
             fasta = fasta2,
             read_list = unique_reads2.reads,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_extract_fasta_reads
     }
 
@@ -107,7 +107,7 @@ workflow LPA_alignment_pipeline {
             prefix = genome_prefix,
             sequences = [fasta_reads1.target_fasta, fasta_reads2.target_fasta],
             hap_labels = ["hap1", "hap2"],
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_combine_sequences
     }
 
@@ -115,7 +115,7 @@ workflow LPA_alignment_pipeline {
         input:
             fasta = CombineSequences.combined_fasta,
             prefix_string = genome_prefix,
-            docker_image = docker_image,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_add_prefix_to_read
     }
 
