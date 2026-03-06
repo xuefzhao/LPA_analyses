@@ -9,7 +9,7 @@ workflow MosDepthLocal {
 
         Array[File] bam_list          # List of BAMs
         Array[File] bai_list          # List of BAIs (same order as BAM)
-        String[String] sample_list
+        Array[String] sample_list
         Int start
         Int end
         String chrom
