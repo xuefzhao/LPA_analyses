@@ -104,7 +104,7 @@ workflow LPA_alignment_pipeline {
 
     call AssemblySeqLpaAnalyses.CombineSequences {
         input:
-            prefix = prefix,
+            prefix = genome_prefix,
             sequences = [fasta_reads1.target_fasta, fasta_reads2.target_fasta],
             hap_labels = ["hap1", "hap2"],
             docker_image = docker_image,
@@ -114,7 +114,7 @@ workflow LPA_alignment_pipeline {
     call AssemblySeqLpaAnalyses.AddPrefixIfMissing{
         input:
             fasta = CombineSequences.combined_fasta,
-            prefix_string = prefix,
+            prefix_string = genome_prefix,
             docker_image = docker_image,
             runtime_attr_override = runtime_attr_add_prefix_to_read
     }
