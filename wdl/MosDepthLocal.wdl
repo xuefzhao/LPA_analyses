@@ -41,7 +41,6 @@ workflow MosDepthLocal {
                 prefix = "~{prefix}.~{midfix}",
                 quantize_mode = quantize_mode
         }
-    }
 
     output {
         File mosdepth_dist = RunMosDepth.dist
