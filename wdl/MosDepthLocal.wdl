@@ -142,10 +142,10 @@ task EstimateKIV2Depth {
     input {
         File depth_file
         File Rscript_calculate_kiv2_depth
-        Float pos1
-        Float pos2
-        Float pos3
-        Float pos4
+        Int pos1
+        Int pos2
+        Int pos3
+        Int pos4
         String sample_id
 
         # Runtime parameters
