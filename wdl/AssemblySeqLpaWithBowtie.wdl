@@ -2,23 +2,85 @@ version 1.0
 
 import "Structs.wdl"
 
+import "AssemblySeqLpaAnalyses.wdl" as AssemblySeqLpaAnalyses
+
 workflow LPA_alignment_pipeline {
 
     input {
-        File genome_fasta                # HG01573.fa
+
+        String bam1
+        String bam2
+        String bai1
+        String bai2
+        File fasta1
+        File fasta2
+
+        String chrom
+        Int start
+        Int end
+        Int flank_length
         String genome_prefix             # HG01573
+
+        File annotation_file
         File exon_fasta                  # LPA_seq.cds.fa
+
+        File script_run_blast_from_table
+        File script_extract_spanned_regions
         File polish_bam_script           # polish_bam.py
         File extract_exon_script         # extract_exon_seq.from_bam.py
         File recognize_pattern_script    # recognize_gene_pattern.py
+
         String bowtie_docker
+        String python_docker
         String sv_pipeline_base_docker
+
+        RuntimeAttr? runtime_attr_extract_region
+        RuntimeAttr? runtime_attr_get_unique_reads
+        RuntimeAttr? runtime_attr_extract_fasta_reads
+        RuntimeAttr? runtime_attr_annotate_sequences
+        RuntimeAttr? runtime_attr_cut_sequences_to_regions
+        RuntimeAttr? runtime_attr_combine_sequences
+        RuntimeAttr? runtime_attr_add_prefix_to_read
         RuntimeAttr? runtime_attr_override
     }
 
+
+    call AssemblySeqLpaAnalyses {
+
+        input:
+            bam1 = bam1,
+            bam2 = bam2,
+            bai1 = bai1,
+            bai2 = bai2,
+            fasta1 = fasta1,
+            fasta2 = fasta2,
+            annotation_file = annotation_file,
+            flank_length = flank_length,
+
+            script_run_blast_from_table = script_run_blast_from_table,
+            script_extract_spanned_regions = script_extract_spanned_regions,
+            chrom = chrom,
+            start = start,
+            end = end,
+            prefix = genome_prefix,
+            docker_image = sv_pipeline_base_docker,
+
+            runtime_attr_extract_region = runtime_attr_extract_region,
+            runtime_attr_get_unique_reads = runtime_attr_get_unique_reads,
+            runtime_attr_extract_fasta_reads = runtime_attr_extract_fasta_reads,
+            runtime_attr_annotate_sequences = runtime_attr_annotate_sequences,
+            runtime_attr_cut_sequences_to_regions = runtime_attr_cut_sequences_to_regions,
+            runtime_attr_combine_sequences = runtime_attr_combine_sequences,
+            runtime_attr_add_prefix_to_read = runtime_attr_add_prefix_to_read
+        }
+
+
+
+
+
     call BuildBowtieIndex {
         input:
-            fasta = genome_fasta,
+            fasta = AssemblySeqLpaAnalyses.combined_fasta,
             prefix = genome_prefix,
             docker_image = bowtie_docker,
             runtime_attr_override = runtime_attr_override
@@ -37,16 +99,16 @@ workflow LPA_alignment_pipeline {
         input:
             bam_file = AlignExonSeq.bam,
             script = polish_bam_script,
-            docker_image = sv_pipeline_base_docker,
+            docker_image = python_docker,
             runtime_attr_override = runtime_attr_override
     }
 
     call ExtractGeneStructure {
         input:
             polished_bam = PolishBam.polished_bam,
-            genome_fasta = genome_fasta,
+            genome_fasta = AssemblySeqLpaAnalyses.combined_fasta,
             script = extract_exon_script,
-            docker_image = sv_pipeline_base_docker,
+            docker_image = python_docker,
             runtime_attr_override = runtime_attr_override
     }
 
@@ -54,7 +116,7 @@ workflow LPA_alignment_pipeline {
         input:
             tsv_file = ExtractGeneStructure.tsv,
             script = recognize_pattern_script,
-            docker_image = sv_pipeline_base_docker,
+            docker_image = python_docker,
             runtime_attr_override = runtime_attr_override
     }
 
