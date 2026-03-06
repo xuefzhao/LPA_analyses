@@ -48,15 +48,16 @@ workflow MosDepthLocal {
                 prefix = prefix,
                 quantize_mode = quantize_mode
         }
+    }
 
 
     output {
-        File mosdepth_dist = RunMosDepth.dist
-        File mosdepth_summary = RunMosDepth.summary
-        File mosdepth_per_base = RunMosDepth.per_base
-        File mosdepth_per_base_csi = RunMosDepth.per_base_csi
-        File? mosdepth_quantized_bed = RunMosDepth.quantized_bed
-        File? mosdepth_quantized_bed_csi = RunMosDepth.quantized_bed_csi
+        Array[File] mosdepth_dist = RunMosDepth.dist
+        Array[File] mosdepth_summary = RunMosDepth.summary
+        Array[File] mosdepth_per_base = RunMosDepth.per_base
+        Array[File] mosdepth_per_base_csi = RunMosDepth.per_base_csi
+        Array[File]? mosdepth_quantized_bed = RunMosDepth.quantized_bed
+        Array[File]? mosdepth_quantized_bed_csi = RunMosDepth.quantized_bed_csi
     }
 }
 
