@@ -92,7 +92,6 @@ workflow AssemblySeqLpaAnalyses {
     call AnnotateSequences as annotate_seq1{
         input:
             target_fa = fasta_reads1.target_fasta,
-            target_fai = fasta_reads1.target_fasta_fai,
             annotation_file = annotation_file,
             run_blast_from_table = script_run_blast_from_table,
             docker_image = docker_image,
@@ -102,7 +101,6 @@ workflow AssemblySeqLpaAnalyses {
     call AnnotateSequences as annotate_seq2{
         input:
             target_fa = fasta_reads2.target_fasta,
-            target_fai = fasta_reads2.target_fasta_fai,
             annotation_file = annotation_file,
             run_blast_from_table = script_run_blast_from_table,
             docker_image = docker_image,
@@ -438,7 +436,6 @@ task ExtractFastaReads {
 task AnnotateSequences {
     input {
         File target_fa
-        File target_fai
         File annotation_file
         File run_blast_from_table
         String docker_image
@@ -448,6 +445,7 @@ task AnnotateSequences {
     String prefix = basename(target_fa, ".fa")
     command <<<
         set -euo pipefail
+        samtools faidx ~{target_fa}
         wget https://ftp.ncbi.nlm.nih.gov/blast/executables/blast+/LATEST/ncbi-blast-2.17.0+-x64-linux.tar.gz
         tar zxvf ncbi-blast-2.17.0+-x64-linux.tar.gz
         bash ~{run_blast_from_table} ~{annotation_file} ~{target_fa} ~{prefix}.tsv
