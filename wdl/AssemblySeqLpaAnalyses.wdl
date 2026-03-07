@@ -406,13 +406,11 @@ task ExtractFastaReads {
         set -euo pipefail
 
         samtools faidx ~{fasta} $(cat ~{read_list}) > ~{output_prefix}_reads.fa
-        samtools faidx ~{output_prefix}_reads.fa
 
     >>>
 
     output {
         File target_fasta = "~{output_prefix}_reads.fa"
-        File target_fasta_fai = "~{output_prefix}_reads.fa.fai"
     }
 
     RuntimeAttr default_attr = object {
