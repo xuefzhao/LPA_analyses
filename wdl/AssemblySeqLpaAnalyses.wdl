@@ -110,7 +110,6 @@ workflow AssemblySeqLpaAnalyses {
     call CutSequencesToRegions as cut_to_region1 {
         input:
             target_fa = fasta_reads1.target_fasta,
-            target_fai = fasta_reads1.target_fasta_fai,
             annotations = annotate_seq1.annotated,
             flank_length = flank_length,
             extract_spanned_regions = script_extract_spanned_regions,
@@ -121,7 +120,6 @@ workflow AssemblySeqLpaAnalyses {
     call CutSequencesToRegions as cut_to_region2 {
         input:
             target_fa = fasta_reads2.target_fasta,
-            target_fai = fasta_reads2.target_fasta_fai,
             annotations = annotate_seq2.annotated,
             flank_length = flank_length,
             extract_spanned_regions = script_extract_spanned_regions,
@@ -481,7 +479,6 @@ task AnnotateSequences {
 task CutSequencesToRegions {
     input {
         File target_fa
-        File target_fai
         File annotations
         Int flank_length
         File extract_spanned_regions
@@ -492,7 +489,7 @@ task CutSequencesToRegions {
     String prefix = basename(target_fa,".fa")
     command <<<
         set -euo pipefail
-
+        samtools faidx ~{target_fa}
         python ~{extract_spanned_regions} ~{target_fa} ~{annotations}  ~{flank_length} ~{prefix}.target.fa
 
     >>>
