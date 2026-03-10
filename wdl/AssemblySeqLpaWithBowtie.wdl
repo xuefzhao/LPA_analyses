@@ -20,6 +20,7 @@ workflow LPA_alignment_pipeline {
         Int end
         Int flank_length
         String genome_prefix             # HG01573
+        String midfix_gene_name            # eg. LPA, SMN1_SMN2
 
         File annotation_file
         File exon_fasta                  # LPA_seq.cds.fa
@@ -131,6 +132,7 @@ workflow LPA_alignment_pipeline {
     call AlignExonSeq {
         input:
             prefix = genome_prefix,
+            midfix = midfix_gene_name,
             index_tar = BuildBowtieIndex.index_tar,
             exon_fasta = exon_fasta,
             docker_image = bowtie_docker,
@@ -220,6 +222,7 @@ task BuildBowtieIndex {
 task AlignExonSeq {
     input {
         String prefix
+        String midfix
         File index_tar
         File exon_fasta
         String docker_image
@@ -231,11 +234,11 @@ task AlignExonSeq {
         mkdir -p index_dir
         tar xzf ~{index_tar} -C index_dir
         cd index_dir
-        bowtie2 -x ~{prefix} -f -U ~{exon_fasta} -k 100 | samtools sort -o ../LPA_seq.cds.vs.~{prefix}.bam
+        bowtie2 -x ~{prefix} -f -U ~{exon_fasta} -k 100 | samtools sort -o ../~{midfix}.cds.vs.~{prefix}.bam
     >>>
 
     output {
-        File bam = "LPA_seq.cds.vs.~{prefix}.bam"
+        File bam = "~{midfix}.cds.vs.~{prefix}.bam"
     }
 
     RuntimeAttr default_attr = object {
