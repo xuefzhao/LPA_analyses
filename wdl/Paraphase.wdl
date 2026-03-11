@@ -6,6 +6,7 @@ workflow paraphase_workflow {
         File bai
         File fasta
         File fasta_fai
+        String docker_image
         String sample_name = "paraphase_output"
     }
 
@@ -15,6 +16,7 @@ workflow paraphase_workflow {
             bai = bai,
             fasta = fasta,
             fasta_fai = fasta_fai,
+            docker_image = docker_image,
             sample_name = sample_name
     }
 
@@ -29,6 +31,7 @@ task RunParaphase {
         File bai
         File fasta
         File fasta_fai
+        String  docker_image
         String sample_name
     }
 
@@ -51,7 +54,7 @@ task RunParaphase {
     }
 
     runtime {
-        docker: "paraphase-xz"
+        docker: docker_image
         cpu: 4
         memory: "8G"
     }
