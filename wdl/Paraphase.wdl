@@ -1,5 +1,7 @@
 version 1.0
 
+import "Structs.wdl"
+
 workflow paraphase_workflow {
     input {
         File bam
