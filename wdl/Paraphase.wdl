@@ -51,7 +51,7 @@ task RunParaphase {
     }
 
     runtime {
-        docker: "paraphase:latest"
+        docker: "paraphase-xz"
         cpu: 4
         memory: "8G"
     }
