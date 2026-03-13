@@ -16,6 +16,7 @@ workflow paraphase_workflow {
         String sv_pipeline_base_docker
 
         RuntimeAttr? runtime_attr_paraphase
+        RuntimeAttr? runtime_attr_process_tar_gz
     }
 
     call RunParaphase {
