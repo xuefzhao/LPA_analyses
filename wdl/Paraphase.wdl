@@ -12,7 +12,8 @@ workflow paraphase_workflow {
 
         String sample_name = "paraphase_output"
 
-        String docker_image
+        String paraphase_docker
+        String sv_pipeline_base_docker
 
         RuntimeAttr? runtime_attr_paraphase
     }
@@ -23,7 +24,7 @@ workflow paraphase_workflow {
             bai = bai,
             fasta = fasta,
             fasta_fai = fasta_fai,
-            docker_image = docker_image,
+            docker_image = paraphase_docker,
             sample_name = sample_name,
             runtime_attr_override = runtime_attr_paraphase
 
