@@ -233,7 +233,7 @@ task GetUniqueReads {
     COUNT=$(wc -l < unique_reads.txt)
 
     if [ "$COUNT" -eq 0 ]; then
-            echo "No reads found in region" > result.tsv
+            echo "" > result.tsv
             # alignment_table.tsv already exists (header only)
             mv result.tsv ~{prefix}.reads
             mv alignment_table.tsv ~{prefix}.alignment_table.tsv
