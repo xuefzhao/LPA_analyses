@@ -27,7 +27,7 @@ workflow LPA_alignment_pipeline {
 
         File polish_bam_script           # polish_bam.py
         File extract_exon_script         # extract_exon_seq.from_bam.py
-        File recognize_pattern_script    # recognize_gene_pattern.py
+        File recognize_pattern_Rscript    # recognize_gene_pattern.py
 
         String bowtie_docker
         String python_docker
@@ -159,7 +159,7 @@ workflow LPA_alignment_pipeline {
     call RecognizeGenePattern {
         input:
             tsv_file = ExtractGeneStructure.tsv,
-            script = recognize_pattern_script,
+            script = recognize_pattern_Rscript,
             docker_image = python_docker,
             runtime_attr_override = runtime_attr_override
     }
@@ -365,7 +365,7 @@ task RecognizeGenePattern {
     String prefix = basename(tsv_file, ".tsv")
     command <<<
         set -euo pipefail
-        python3 ~{script} ~{tsv_file} ~{prefix}.struc
+        Rscript ~{script} -i ~{tsv_file} -o ~{prefix}.struc
     >>>
 
     output {
