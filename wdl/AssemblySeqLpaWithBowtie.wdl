@@ -160,7 +160,7 @@ workflow LPA_alignment_pipeline {
         input:
             tsv_file = ExtractGeneStructure.tsv,
             script = recognize_pattern_Rscript,
-            docker_image = python_docker,
+            docker_image = sv_pipeline_base_docker,
             runtime_attr_override = runtime_attr_override
     }
 
