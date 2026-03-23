@@ -1,0 +1,14 @@
+{
+  "AssemblySeqLpaAnalyses.bam1": "path/to/sample1.bam",
+  "AssemblySeqLpaAnalyses.bam2": "path/to/sample2.bam",
+  "AssemblySeqLpaAnalyses.fasta1": "path/to/reads1.fa",
+  "AssemblySeqLpaAnalyses.fasta2": "path/to/reads2.fa",
+  "AssemblySeqLpaAnalyses.annotation_file": "path/to/annotations.tsv",
+  "AssemblySeqLpaAnalyses.script_run_blast_from_table": "scripts/run_blast_from_table.sh",
+  "AssemblySeqLpaAnalyses.script_extract_spanned_regions": "scripts/extract_spanned_regions.py",
+  "AssemblySeqLpaAnalyses.chrom": "chr1",
+  "AssemblySeqLpaAnalyses.start": 100000,
+  "AssemblySeqLpaAnalyses.end": 110000,
+  "AssemblySeqLpaAnalyses.prefix": "region_example",
+  "AssemblySeqLpaAnalyses.docker_image": "your-docker-image:latest"
+}
