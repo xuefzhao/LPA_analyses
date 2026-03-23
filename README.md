@@ -1,7 +1,7 @@
 LPA Analyses
 ============
 
-This repository contains WDL workflows and helper scripts used for LPA (long-read phasing/assembly) analyses.
+This repository contains WDL workflows and helper scripts used for analyzing genes in segmental duplicates (eg. LPA).
 
 Project aim
 -----------
