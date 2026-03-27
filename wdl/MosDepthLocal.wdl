@@ -14,6 +14,10 @@ workflow MosDepthLocal {
         String chrom
         String midfix
 
+        # If regional_bam (and regional_bai) are already extracted, skip ExtractRegion
+        File? regional_bam
+        File? regional_bai
+
         File Rscript_calculate_kiv2_depth
 
         String gatk_docker
@@ -22,7 +26,8 @@ workflow MosDepthLocal {
         Boolean? quantize_mode = false
     }
 
-    call ExtractRegionFromBam.ExtractRegion as ExtractRegion{
+    if (!defined(regional_bam)) {
+        call ExtractRegionFromBam.ExtractRegion as ExtractRegion {
             input:
                 bam = bam,
                 bai = bai,
@@ -32,12 +37,16 @@ workflow MosDepthLocal {
                 mid_fix = midfix,
                 docker_image = gatk_docker,
                 runtime_attr_override = runtime_attr_extract_region
+        }
     }
+
+    File bam_for_mosdepth = select_first([regional_bam, ExtractRegion.regional_bam])
+    File bai_for_mosdepth = select_first([regional_bai, ExtractRegion.regional_bai])
 
     call RunMosDepth {
             input:
-                bam = ExtractRegion.regional_bam,
-                bai = ExtractRegion.regional_bai,
+                bam = bam_for_mosdepth,
+                bai = bai_for_mosdepth,
                 contig = chrom,  # pass the original region
                 prefix = "~{prefix}.~{midfix}",
                 quantize_mode = quantize_mode
