@@ -114,18 +114,17 @@ task ExtractRegion {
 
     command <<<
         set -euo pipefail
-        # Create a localized version where BAI and BAM are in the same folder if necessary
-        # However, GATK/Samtools usually handle paths if passed explicitly
         gatk PrintReads \
             -I ~{bam} \
             --read-index ~{bai} \
             -L ~{chrom}:~{start}-~{end} \
             -O ~{output_bam}
+        gatk BuildBamIndex -I ~{output_bam}
     >>>
 
     output {
         File regional_bam = "~{output_bam}"
-        File regional_bai = "~{output_bam}.bai"
+        File regional_bai = sub(output_bam, "\\.bam$", ".bai")
     }
 
     RuntimeAttr default_attr = object {
