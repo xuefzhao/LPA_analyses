@@ -64,6 +64,8 @@ workflow MosDepthLocal {
     }
 
     output {
+        File? extracted_regional_bam = ExtractRegion.regional_bam
+        File? extracted_regional_bai = ExtractRegion.regional_bai
         File mosdepth_dist = RunMosDepth.dist
         File mosdepth_summary = RunMosDepth.summary
         File mosdepth_per_base = RunMosDepth.per_base
@@ -73,7 +75,6 @@ workflow MosDepthLocal {
         File lpa_depth_plot = EstimateKIV2Depth.depth_plot
         File lpa_depth_stats = EstimateKIV2Depth.depth_stats
         Float lpa_kiv2_copy = EstimateKIV2Depth.estimated_kiv2
-
     }
 }
 
