@@ -1,0 +1,29 @@
+version: 1.2
+workflows:
+  - name: BamHMMFlagger
+    subclass: WDL
+    primaryDescriptorPath: /wdl/BamHMMFlagger.wdl
+  - name: ExtractTargetSeq
+    subclass: WDL
+    primaryDescriptorPath: /wdl/ExtractTargetSeq.wdl
+  - name: HiFiCNV
+    subclass: WDL
+    primaryDescriptorPath: /wdl/HiFiCNV.wdl
+  - name: MosDepthLocal
+    subclass: WDL
+    primaryDescriptorPath: /wdl/MosDepthLocal.wdl
+  - name: LPA_alignment_pipeline
+    subclass: WDL
+    primaryDescriptorPath: /wdl/AssemblySeqLpaWithBowtie.wdl
+  - name: paraphase_workflow
+    subclass: WDL
+    primaryDescriptorPath: /wdl/Paraphase.wdl
+  - name: AlignPacbioBam
+    subclass: WDL
+    primaryDescriptorPath: /wdl/AlignPacbioSeq.wdl
+  - name: AlignAsm
+    subclass: WDL
+    primaryDescriptorPath: /wdl/AlignAssemblies.wdl
+  - name: SplitHaplotypeReads
+    subclass: WDL
+    primaryDescriptorPath: /wdl/SplitHaplotypeReads.wdl
