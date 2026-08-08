@@ -60,8 +60,3 @@ awk '$5 > 100 {
 rm -f "$TMP_QUERY" "$TMP_BLAST"
 
 echo "Done. Output written to $OUTPUT"
-
-
-
-
-
